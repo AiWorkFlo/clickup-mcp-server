@@ -23,6 +23,8 @@ The target is Render workspace `tea-d9vd713l550s738b1at0`, free plan, Singapore,
 
 The launcher disables dotenv and URL tokens, refuses static bearer/Cloudflare alternative credentials, rejects ClickUp API and JWKS overrides, and confines file attachments to `/tmp/aiworkflo-clickup-attachments`. This is ephemeral storage; never put credentials there. No client secrets belong on this resource server.
 
+The build wrapper removes `CLICKUP_*`, `MCP_*` and `CF_ACCESS_*` variables before installation and offline tests, because Render exposes runtime configuration during builds. It then prunes development dependencies. Offline tests must never inherit the live token or deployment profile.
+
 ## Managed authentication
 
 Use Auth0 Auth for MCP unless an existing compatible managed provider is available. Tenant creation and account login require the owner. This repository does not provision a tenant or store provider credentials.

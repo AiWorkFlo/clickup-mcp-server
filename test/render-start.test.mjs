@@ -1,12 +1,22 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { renderEnvironment } from '../scripts/render-start.mjs';
+import { buildEnvironment } from '../scripts/render-build.mjs';
 
 const valid = {
   CLICKUP_API_TOKEN: 'pk_fixture', CLICKUP_WORKSPACE_ID: '123',
   MCP_OAUTH_ISSUER: 'https://tenant.example/', MCP_OAUTH_ALLOWED_SUBJECT: 'provider|joshua',
   RENDER_EXTERNAL_URL: 'https://fixture.onrender.com', PORT: '12345',
 };
+
+test('Render build excludes live credentials and profile settings from test children', () => {
+  const input = { ...valid, PATH: '/bin', NODE_ENV: 'production', MCP_PROFILE: 'read', CF_ACCESS_AUD: 'live', CLICKUP_API_BASE: 'https://example.com' };
+  const env = buildEnvironment(input);
+  assert.equal(env.PATH, '/bin');
+  assert.equal(env.NODE_ENV, 'production');
+  assert.equal(Object.keys(env).some((key) => /^(CLICKUP_|MCP_|CF_ACCESS_)/.test(key)), false);
+  assert.equal(input.CLICKUP_API_TOKEN, 'pk_fixture');
+});
 
 test('Render defaults to read, binds PORT, and preserves exact issuer', () => {
   const env = renderEnvironment(valid);

@@ -20,17 +20,21 @@ Deploy the v4 server to the AiWorkFlo Render workspace `tea-d9vd713l550s738b1at0
 
 - Added Render Blueprint and a fail-closed v4 launcher: OAuth only, required exact subject, read default, explicit core approval flag, strict environment, sandboxed attachments and Render port binding.
 - Fixed exact OAuth issuer handling (including trailing slash) and required a matching discovery issuer. Added an optional signed-subject restriction, required by the Render launcher.
-- Added 10 regression tests and SHA-pinned CI actions. All upstream test files remain enabled.
+- Added 11 regression tests and SHA-pinned CI actions. All upstream test files remain enabled.
 - `npm ci` completed with Node 24.19.0 after redirecting npm's cache to writable `/tmp/aiworkflo-npm-cache`. The first install attempt failed because the default cache was read-only; an early test attempt before installation completed failed with `tsc: not found`. These environment failures were resolved, not hidden.
-- `npm test` passed after targeted dependency updates: **372 tests, 56 suites, 372 passed, 0 failed/cancelled/skipped/todo**. This includes the complete upstream offline suite and 10 new tests. Build succeeded as part of this command. Tests use local ClickUp and signed-token fixtures, not live services.
+- `npm test` passed after targeted dependency updates: **373 tests, 56 suites, 373 passed, 0 failed/cancelled/skipped/todo**. This includes the complete upstream offline suite and 11 new tests. Build succeeded as part of this command. Tests use local ClickUp and signed-token fixtures, not live services.
 - Updated compatible locked versions of fast-uri, hono, qs, brace-expansion, js-yaml and diff. Also synchronized stale lockfile package/bin metadata with package.json.
 - Runtime audit: **0 vulnerabilities** (`npm audit --omit=dev`). Full audit: **6 high findings** remain in the development-only TypeScript ESLint/minimatch chain. Fix suggestions require a major tooling upgrade; deferred to a separate change to preserve deployment scope. Render prunes dev dependencies after building/testing. Do not describe the whole dependency tree as vulnerability-free.
 - `render.yaml` passed JSON Schema validation against https://render.com/schema/render.yaml.json. This is schema validation, not an authenticated Render Blueprint deployment.
-- Configured main branch protection through GitHub API: one approving review, dismiss stale reviews, require up-to-date `build-and-test`, enforce for admins, require resolved conversations, disable force pushes and deletions. API read-back is required before final handoff.
+- Configured main branch protection through GitHub API: one approving review, dismiss stale reviews, require up-to-date `build-and-test`, enforce for admins, require resolved conversations, disable force pushes and deletions. A separate GET read-back confirmed these settings. GitHub reports REVIEW_REQUIRED and blocks merging until approval. The PR author cannot approve their own PR.
 
 ## In progress
 
-Open the deployment PR, observe GitHub CI, and record the exact tested SHA and check URLs. No PR approval or deployment has occurred.
+- PR: https://github.com/AiWorkFlo/clickup-mcp-server/pull/1 (open, not approved or merged).
+- Initial implementation commit `590211921bdb940876f0e114a8eb25058556196e` passed both hosted CI runs, including https://github.com/AiWorkFlo/clickup-mcp-server/actions/runs/35720111531.
+- A subsequent build isolation change removes live configuration from build/test subprocesses. Its exact Render build command, `node scripts/render-build.mjs`, passed locally with production-mode fixture environment: install, build, all 373 tests, then removal of 141 development packages and zero runtime vulnerabilities. CI uses this same command.
+- The final commit SHA and its hosted check results are available on the PR's latest commit and Checks tab. Do not deploy the earlier implementation SHA merely because its CI passed.
+- No PR approval, merge or deployment has occurred.
 
 ## Pending deployment and acceptance
 
@@ -48,4 +52,4 @@ Do not run upstream `npm run smoke` unchanged: it chooses the first workspace an
 
 ## Evidence and next action
 
-Local evidence is recorded above. Next: publish the PR and verify GitHub checks. Live Render, ClickUp and ChatGPT acceptance remain blocked by account access and missing secure configuration. Never put tokens or private ClickUp content in this public fork.
+Local evidence is recorded above. Next: verify final PR-head checks, obtain independent PR review, then establish Render and managed-provider account access. Live Render, ClickUp and ChatGPT acceptance remain blocked by account access and missing secure configuration. Never put tokens or private ClickUp content in this public fork.

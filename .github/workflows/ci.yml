@@ -16,6 +16,5 @@ jobs:
         with:
           node-version: 24.19.0
           cache: npm
-      - run: npm ci --include=dev
-      - run: npm test
+      - run: node scripts/render-build.mjs
       - run: npm audit --omit=dev --audit-level=high

@@ -7,7 +7,7 @@ services:
     plan: free
     region: singapore
     autoDeployTrigger: "off"
-    buildCommand: npm ci --include=dev && npm test && npm prune --omit=dev --ignore-scripts
+    buildCommand: node scripts/render-build.mjs
     startCommand: node scripts/render-start.mjs
     healthCheckPath: /health
     envVars:
