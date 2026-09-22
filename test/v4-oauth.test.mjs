@@ -27,6 +27,7 @@ import {
   looksLikeJwt,
   resetDiscoveryCache,
   OAuthConfigError,
+  verifyOAuthToken,
 } from '../build/v4/core/oauth.js';
 
 const KID = 'test-key-1';
@@ -85,6 +86,36 @@ after(() => {
 });
 
 describe('configuration', () => {
+  test('preserves trailing-slash issuer through discovery and signed-token verification', async () => {
+    resetDiscoveryCache();
+    const raw = oauthEnv({ MCP_OAUTH_ISSUER: `${ISSUER}/`, MCP_PUBLIC_URL: 'https://mcp.example.com/mcp' });
+    assert.equal(raw.issuer, `${ISSUER}/`);
+    const cfg = await resolveOAuthConfig(raw, async (url) => {
+      assert.equal(url, `${ISSUER}/.well-known/openid-configuration`);
+      return new Response(JSON.stringify({ issuer: `${ISSUER}/`, jwks_uri: `${ISSUER}/keys` }));
+    });
+    const identity = await verifyOAuthToken(mint({ iss: `${ISSUER}/`, aud: cfg.resource, sub: 'joshua', exp: Math.floor(Date.now() / 1000) + 300 }), cfg);
+    assert.equal(identity.subject, 'joshua');
+    resetDiscoveryCache();
+  });
+
+  test('discovery requires exact issuer, including slash and missing issuer', async () => {
+    for (const claimedIssuer of [undefined, `${ISSUER}/`]) {
+      resetDiscoveryCache();
+      await assert.rejects(() => resolveOAuthConfig({ issuer: ISSUER, resource: 'https://mcp.example.com', scopes: [] }, async () =>
+        new Response(JSON.stringify({ issuer: claimedIssuer, jwks_uri: `${ISSUER}/keys` }))), /issuer mismatch/);
+    }
+  });
+
+  test('subject restriction rejects valid tokens for another user and missing sub', async () => {
+    const raw = oauthEnv({ MCP_OAUTH_ISSUER: ISSUER, MCP_PUBLIC_URL: 'https://mcp.example.com/mcp', MCP_OAUTH_ALLOWED_SUBJECT: 'joshua' });
+    const cfg = await resolveOAuthConfig({ ...raw, jwksUrl: `${ISSUER}/keys` });
+    const claims = { iss: ISSUER, aud: cfg.resource, exp: Math.floor(Date.now() / 1000) + 300 };
+    assert.equal((await verifyOAuthToken(mint({ ...claims, sub: 'joshua' }), cfg)).subject, 'joshua');
+    await assert.rejects(() => verifyOAuthToken(mint({ ...claims, sub: 'someone-else' }), cfg), /not authorized/);
+    await assert.rejects(() => verifyOAuthToken(mint({ ...claims, email: 'joshua' }), cfg), /none of: sub/);
+  });
+
   test('absent unless an issuer is set', () => {
     assert.equal(oauthEnv({}), null);
   });

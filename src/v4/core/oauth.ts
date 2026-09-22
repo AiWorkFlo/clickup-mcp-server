@@ -41,6 +41,8 @@ export interface OAuthConfig {
   resource: string;
   /** Advertised in the metadata document. Purely informational. */
   scopes: string[];
+  /** Optional exact provider subject allowed to use this single-token server. */
+  allowedSubject?: string;
 }
 
 /** Fetch timeout for issuer discovery. Short: this runs on a request path. */
@@ -83,8 +85,10 @@ export function oauthEnv(env: NodeJS.ProcessEnv = process.env): {
   jwksUrl?: string;
   resource?: string;
   scopes: string[];
+  allowedSubject?: string;
 } | null {
-  const issuer = env.MCP_OAUTH_ISSUER?.trim().replace(/\/+$/, '');
+  // OIDC issuer identifiers are exact strings, including a trailing slash.
+  const issuer = env.MCP_OAUTH_ISSUER?.trim();
   if (!issuer) return null;
   if (!isSecureOrigin(issuer)) {
     throw new OAuthConfigError(
@@ -95,6 +99,7 @@ export function oauthEnv(env: NodeJS.ProcessEnv = process.env): {
   }
   return {
     issuer,
+    allowedSubject: env.MCP_OAUTH_ALLOWED_SUBJECT?.trim() || undefined,
     jwksUrl: env.MCP_OAUTH_JWKS_URL?.trim() || undefined,
     resource: (env.MCP_OAUTH_AUDIENCE?.trim() || env.MCP_PUBLIC_URL?.trim() || '').replace(/\/+$/, '') || undefined,
     scopes: (env.MCP_OAUTH_SCOPES?.trim() || '').split(/[\s,]+/).filter(Boolean),
@@ -121,7 +126,7 @@ export async function resolveOAuthConfig(
   }
 
   const jwksUrl = raw.jwksUrl ?? (await discoverJwks(raw.issuer, fetchImpl));
-  return { issuer: raw.issuer, jwksUrl, resource: raw.resource, scopes: raw.scopes };
+  return { issuer: raw.issuer, jwksUrl, resource: raw.resource, scopes: raw.scopes, allowedSubject: raw.allowedSubject };
 }
 
 async function discoverJwks(issuer: string, fetchImpl: typeof fetch): Promise<string> {
@@ -130,9 +135,10 @@ async function discoverJwks(issuer: string, fetchImpl: typeof fetch): Promise<st
     return discoveryCache.jwksUrl;
   }
 
+  const discoveryBase = issuer.replace(/\/+$/, '');
   const candidates = [
-    `${issuer}/.well-known/openid-configuration`,
-    `${issuer}/.well-known/oauth-authorization-server`,
+    `${discoveryBase}/.well-known/openid-configuration`,
+    `${discoveryBase}/.well-known/oauth-authorization-server`,
   ];
   const failures: string[] = [];
 
@@ -148,7 +154,7 @@ async function discoverJwks(issuer: string, fetchImpl: typeof fetch): Promise<st
       }
       const doc = (await res.json()) as { jwks_uri?: unknown; issuer?: unknown };
       // The document must agree about who it belongs to, or it is not this issuer's document.
-      if (typeof doc.issuer === 'string' && doc.issuer.replace(/\/+$/, '') !== issuer) {
+      if (doc.issuer !== issuer) {
         failures.push(`${url} → issuer mismatch (${doc.issuer})`);
         continue;
       }
@@ -196,9 +202,13 @@ export async function verifyOAuthToken(
     certsUrl: cfg.jwksUrl,
     aud: cfg.resource,
     // A generic issuer identifies the caller by `sub`; some also carry a friendlier claim.
-    subjectClaims: ['sub', 'email', 'client_id'],
+    subjectClaims: cfg.allowedSubject ? ['sub'] : ['sub', 'email', 'client_id'],
   };
-  return verifyAccessJwt(token, access);
+  const identity = await verifyAccessJwt(token, access);
+  if (cfg.allowedSubject && identity.subject !== cfg.allowedSubject) {
+    throw new OAuthConfigError('OAuth subject is not authorized for this server');
+  }
+  return identity;
 }
 
 /**
