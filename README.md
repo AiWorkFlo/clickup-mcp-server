@@ -1,5 +1,9 @@
 # ClickUp MCP Server
 
+AiWorkFlo deployment: see [Render setup](deploy/AIWORKFLO-RENDER.md) and the
+[build roadmap](BUILD_ROADMAP.md) for reviewed configuration, observed test results,
+and remaining acceptance work. This fork retains the upstream application and license.
+
 <p align="center">
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
   <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen" alt="Node.js Version"></a>

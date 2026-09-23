@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: aiworkflo-clickup-mcp
+    runtime: node
+    repo: https://github.com/AiWorkFlo/clickup-mcp-server
+    branch: main
+    plan: free
+    region: singapore
+    autoDeployTrigger: "off"
+    buildCommand: node scripts/render-build.mjs
+    startCommand: node scripts/render-start.mjs
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 24.19.0
+      - key: NODE_ENV
+        value: production
+      - key: MCP_PROFILE
+        value: read
+      - key: CLICKUP_API_TOKEN
+        sync: false
+      - key: CLICKUP_WORKSPACE_ID
+        sync: false
+      - key: MCP_OAUTH_ISSUER
+        sync: false
+      - key: MCP_OAUTH_ALLOWED_SUBJECT
+        sync: false
