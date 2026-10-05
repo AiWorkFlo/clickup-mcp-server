@@ -46,14 +46,22 @@ export function renderEnvironment(input) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   try {
-    const env = renderEnvironment(process.env);
-    await mkdir(env.CLICKUP_ATTACH_ROOT, { recursive: true, mode: 0o700 });
-    if (await realpath(env.CLICKUP_ATTACH_ROOT) !== env.CLICKUP_ATTACH_ROOT) {
-      throw new Error('Attachment sandbox must not be a symlink.');
+    if (process.env.MCP_DISCOVERY_ONLY === '1') {
+      const { startDiscoveryOnly } = await import('./render-discovery.mjs');
+      startDiscoveryOnly(process.env);
+    } else {
+      if (process.env.MCP_DISCOVERY_ONLY && process.env.MCP_DISCOVERY_ONLY !== '0') {
+        throw new Error('MCP_DISCOVERY_ONLY must be 0 or 1.');
+      }
+      const env = renderEnvironment(process.env);
+      await mkdir(env.CLICKUP_ATTACH_ROOT, { recursive: true, mode: 0o700 });
+      if (await realpath(env.CLICKUP_ATTACH_ROOT) !== env.CLICKUP_ATTACH_ROOT) {
+        throw new Error('Attachment sandbox must not be a symlink.');
+      }
+      Object.assign(process.env, env);
+      // Import in-process so Render's SIGTERM reaches upstream shutdown handling.
+      await import(pathToFileURL(fileURLToPath(new URL('../build/v4/index.js', import.meta.url))).href);
     }
-    Object.assign(process.env, env);
-    // Import in-process so Render's SIGTERM reaches upstream shutdown handling.
-    await import(pathToFileURL(fileURLToPath(new URL('../build/v4/index.js', import.meta.url))).href);
   } catch (error) {
     console.error(`[render-start] ${error.message}`);
     process.exitCode = 1;

@@ -8,6 +8,16 @@ The target is Render workspace `tea-d9vd713l550s738b1at0`, free plan, Singapore,
 
 ## Review and deploy
 
+### Setup-only discovery bootstrap
+
+When ChatGPT cannot display its callback until the server is reachable, explicitly set `MCP_DISCOVERY_ONLY=1`, `MCP_PROFILE=read`, `MCP_PUBLIC_URL` to the canonical HTTPS `/mcp` URL, and `MCP_OAUTH_ISSUER` to the exact issuer verified from the provider's public discovery document. This requires a reviewed deployment of the bootstrap implementation. Do not invent the issuer, subject, or callback.
+
+This mode starts an isolated listener without importing the ClickUp application, inspecting credentials, or making outbound calls. Only GET `/health` and the two protected-resource metadata paths are available. Every `/mcp` request returns 401, even with valid credentials; other paths return 404. Health explicitly reports `mode=discovery-only` and `tools_enabled=false`. This is setup readiness, not MCP or ClickUp acceptance. Existing secrets remain stored but unused. No OAuth client, account, token or grant is created by this mode.
+
+After the actual callback, approved provider configuration and exact user subject are established, set `MCP_DISCOVERY_ONLY=0` and redeploy through the normal checks below. Normal startup still requires all credentials and the subject restriction. Validate the existing ClickUp token by an authenticated read without displaying its value; startup with an explicit workspace ID does not validate access. Never change the bootstrap listener to allow anonymous MCP initialization or tools.
+
+### Normal service deployment
+
 1. Review the AiWorkFlo PR and its actual successful checks. Require one approving review and the `build-and-test` status check on main, with stale approvals dismissed and force pushes disabled. Read the protection settings back; workflow presence alone is not enforcement.
 2. After approval, merge without rewriting upstream history. Re-run CI on the merge commit. Record its full SHA before creating the Render service. Use this fork only; never link Render to upstream main. Do not merge or deploy an unreviewed PR simply to make a service available.
 3. In the AiWorkFlo Render workspace, create a Blueprint from the fork's reviewed main branch and `render.yaml`. Confirm the displayed repository, branch, free plan, Singapore region, and auto-deploy setting. Initial creation deploys the current branch tip, so ensure that tip is the recorded approved SHA. Subsequent deployments must use **Deploy a specific commit** with a reviewed SHA and verify the deployed SHA afterward.
