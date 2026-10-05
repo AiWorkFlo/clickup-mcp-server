@@ -51,7 +51,8 @@ http.request = http.get = https.request = https.get = globalThis.fetch = deny;
 syncBuiltinESMExports();
 registerHooks({ resolve(specifier, context, next) {
   const result = next(specifier, context);
-  if (/\\/(build|src|node_modules)\\//.test(result.url)) throw new Error('Unexpected application import');
+  const forbidden = ${JSON.stringify(['build/', 'src/', 'node_modules/'].map((path) => new URL('../' + path, import.meta.url).href))};
+  if (forbidden.some((prefix) => result.url.startsWith(prefix))) throw new Error('Unexpected application import');
   return result;
 } });
 `);
