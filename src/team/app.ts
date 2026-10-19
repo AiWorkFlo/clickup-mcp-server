@@ -18,7 +18,9 @@ export function createTeamApp(config: TeamConfig, store: TeamStore, provider: Te
   // Coolify's proxy is the only ingress to this container.
   app.set('trust proxy',1);
   app.use((req,res,next)=>{
-    res.set({'Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff',
+    // no-referrer makes native form POSTs send Origin: null, breaking strict CSRF validation.
+    // strict-origin preserves the origin without disclosing paths or authorization parameters.
+    res.set({'Cache-Control':'no-store','Referrer-Policy':'strict-origin','X-Content-Type-Options':'nosniff',
       'Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
       'Strict-Transport-Security':'max-age=31536000'});
     next();
