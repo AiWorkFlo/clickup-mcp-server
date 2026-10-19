@@ -42,6 +42,12 @@ export interface HttpOptions {
   onLog?: (msg: string) => void;
   /** Capability profile. Defaults to unrestricted. */
   policy?: WritePolicy;
+  /** Team mode shares accounting, never resource data, across requests for one credential. */
+  rateBudget?: RateBudget;
+}
+export interface RateBudget { state: RateState; gate: Promise<void> }
+export function createRateBudget(): RateBudget {
+  return { state: { limit: null, remaining: null, resetAt: null }, gate: Promise.resolve() };
 }
 
 export interface RateState {
@@ -69,9 +75,11 @@ export class ClickUpHttp {
   private readonly onLog: (msg: string) => void;
   private readonly policy: WritePolicy;
 
-  private rate: RateState = { limit: null, remaining: null, resetAt: null };
+  private readonly budget: RateBudget;
+  private get rate(): RateState { return this.budget.state; }
   /** Serialises the governor's wait decision so concurrent calls can't both spend the last slot. */
-  private gate: Promise<void> = Promise.resolve();
+  private get gate(): Promise<void> { return this.budget.gate; }
+  private set gate(value: Promise<void>) { this.budget.gate = value; }
 
   requestCount = 0;
   throttleWaits = 0;
@@ -87,6 +95,7 @@ export class ClickUpHttp {
     this.maxRetries = opts.maxRetries ?? DEFAULT_MAX_RETRIES;
     this.onLog = opts.onLog ?? (() => {});
     this.policy = opts.policy ?? POLICIES.full;
+    this.budget = opts.rateBudget ?? createRateBudget();
   }
 
   rateState(): RateState {
@@ -196,10 +205,9 @@ export class ClickUpHttp {
       this.absorbHeaders(res.headers);
       this.requestCount++;
 
-      if (res.status === 429 || (res.status >= 500 && res.status !== 501)) {
-        // 5xx from ClickUp is frequently a *bad parameter*, not an outage, so retrying is
-        // often pointless — but a genuine blip is indistinguishable from here. Retry a
-        // bounded number of times, then surface the teaching error.
+      if (res.status === 429 || (method === 'GET' && res.status >= 500 && res.status !== 501)) {
+        // A failed write may already have taken effect. Only reads can safely retry an
+        // ambiguous 5xx; a 429 explicitly reports that the rate-limited request was rejected.
         if (attempt < this.maxRetries) {
           const wait = this.retryDelay(res, attempt);
           this.retries++;
