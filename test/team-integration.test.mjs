@@ -169,6 +169,8 @@ dbtest('HTTP discovery and SDK endpoints enforce client metadata, PKCE, resource
   const metadata=await (await fetch(base+'/.well-known/oauth-authorization-server')).json();
   assert.equal(metadata.client_id_metadata_document_supported,true);
   assert.equal(metadata.authorization_response_iss_parameter_supported,true);
+  assert.deepEqual(metadata.token_endpoint_auth_methods_supported,['none']);
+  assert.deepEqual(metadata.revocation_endpoint_auth_methods_supported,['none']);
   assert.ok(!metadata.registration_endpoint);
   const authorize={client_id:client.client_id,redirect_uri:client.redirect_uris[0],response_type:'code',code_challenge:challenge(randomToken()),code_challenge_method:'S256',resource,scope:'clickup:core offline_access',state:'client-state'};
   const request=params=>fetch(base+'/authorize?'+new URLSearchParams(params),{redirect:'manual'});
@@ -204,6 +206,8 @@ dbtest('owner-only admin, CSRF, restricted tool discovery, and JSON token exchan
   for(const name of ['attach','people','webhooks'])assert.ok(!names.includes(name));
   assert.equal(data.result.tools.find(tool=>tool.name==='update').annotations.destructiveHint,true);
   assert.ok(data.result.tools.find(tool=>tool.name==='update').inputSchema.properties.confirm);
+  const revoke=await fetch(base+'/revoke',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({client_id:client.client_id,token:g.refresh_token})});
+  assert.equal(revoke.status,200);assert.equal(await store.access(g.access_token,resource),null);
 });
 
 dbtest('browser OAuth callback, consent and disconnect never expose the ClickUp token',async()=>{

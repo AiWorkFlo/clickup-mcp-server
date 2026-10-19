@@ -124,7 +124,8 @@ export function createTeamApp(config: TeamConfig, store: TeamStore, provider: Te
     await store.setStatus(user.id,String(req.params.id),req.params.action==='approve'?'approved':'disabled');res.redirect('/admin');
   });
   const authOptions={provider,issuerUrl:new URL(config.issuer),resourceServerUrl:new URL(config.resource),scopesSupported:['clickup:core','offline_access']};
-  const metadata={...createOAuthMetadata(authOptions),client_id_metadata_document_supported:true,authorization_response_iss_parameter_supported:true};
+  const metadata={...createOAuthMetadata(authOptions),token_endpoint_auth_methods_supported:['none'],
+    revocation_endpoint_auth_methods_supported:['none'],client_id_metadata_document_supported:true,authorization_response_iss_parameter_supported:true};
   app.get('/.well-known/oauth-authorization-server',(_req,res)=>res.json(metadata));
   app.get(['/.well-known/oauth-protected-resource','/.well-known/oauth-protected-resource/mcp'],(_req,res)=>res.json({
     resource:config.resource,authorization_servers:[config.issuer],scopes_supported:['clickup:core','offline_access'],bearer_methods_supported:['header'],resource_name:'ClickUp Team'}));
