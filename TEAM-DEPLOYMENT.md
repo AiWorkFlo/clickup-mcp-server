@@ -7,6 +7,8 @@ Required runtime settings: `DATABASE_URL`, `CLICKUP_CLIENT_ID`, `CLICKUP_CLIENT_
 `TOKEN_ENCRYPTION_KEY` (base64-encoded 32 random bytes), `TEAM_OWNER_CLICKUP_USER_ID=61768248`,
 `MCP_PUBLIC_URL=https://clickup-api.185.227.135.69.sslip.io/mcp`, `PORT=10000`.
 Do not put these settings in build arguments or commit their values.
+Set Coolify's health check type to command, with `node scripts/healthcheck.mjs`.
+This uses the same database-aware check as the Dockerfile without requiring curl or wget.
 
 The ClickUp OAuth callback is `/auth/clickup/callback`. Only ClickUp OAuth identifies users.
 Auth0 and `CLICKUP_API_TOKEN` are ignored by team mode. Personal/stdio mode is preserved.

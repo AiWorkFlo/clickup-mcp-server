@@ -18,5 +18,5 @@ COPY --from=build --chown=node:node /app/package.json ./package.json
 USER node
 EXPOSE 10000
 HEALTHCHECK --interval=20s --timeout=5s --start-period=20s --retries=3 \
-  CMD node -e "fetch('http://127.0.0.1:10000/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+  CMD ["node", "scripts/healthcheck.mjs"]
 CMD ["node", "scripts/coolify-start.mjs"]
