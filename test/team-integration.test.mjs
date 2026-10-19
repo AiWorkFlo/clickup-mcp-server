@@ -224,6 +224,7 @@ dbtest('browser OAuth callback, consent and disconnect never expose the ClickUp 
   const sessionCookie=completed.headers.get('set-cookie').split(';')[0],cookies=flowCookie+'; '+sessionCookie;
   const consent=await fetch(base+completed.headers.get('location'),{headers:{Cookie:cookies}});
   assert.equal(consent.headers.get('referrer-policy'),'strict-origin');
+  assert.match(consent.headers.get('content-security-policy'),/form-action 'self' https:\/\/chatgpt\.com http:\/\/127\.0\.0\.1:\* http:\/\/localhost:\*;/);
   const html=await consent.text();assert.equal(consent.status,200);assert.ok(!html.includes('token-owner'));
   assert.match(html,/Default workspace/);assert.match(html,/ChatGPT/);
   const csrf=html.match(/name="csrf" value="([^"]+)"/)[1],transaction=new URL(base+completed.headers.get('location')).searchParams.get('id');

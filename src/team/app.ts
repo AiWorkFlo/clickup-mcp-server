@@ -21,7 +21,7 @@ export function createTeamApp(config: TeamConfig, store: TeamStore, provider: Te
     // no-referrer makes native form POSTs send Origin: null, breaking strict CSRF validation.
     // strict-origin preserves the origin without disclosing paths or authorization parameters.
     res.set({'Cache-Control':'no-store','Referrer-Policy':'strict-origin','X-Content-Type-Options':'nosniff',
-      'Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
+      'Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; form-action 'self' https://chatgpt.com http://127.0.0.1:* http://localhost:*; frame-ancestors 'none'; base-uri 'none'",
       'Strict-Transport-Security':'max-age=31536000'});
     next();
   });
