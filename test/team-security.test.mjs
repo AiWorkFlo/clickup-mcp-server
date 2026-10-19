@@ -5,6 +5,12 @@ import { encryptCredential, decryptCredential, digest, teamConfig, safeRedirect,
 test('team configuration refuses missing secrets and ignores personal credentials', () => {
   assert.throws(() => teamConfig({ CLICKUP_API_TOKEN: 'pk_personal' }), /required/);
 });
+test('team configuration rejects browser field labels in OAuth credentials', () => {
+  const env={DATABASE_URL:'postgres://test',CLICKUP_CLIENT_ID:'test-client',CLICKUP_CLIENT_SECRET:'test-secret',TOKEN_ENCRYPTION_KEY:Buffer.alloc(32,1).toString('base64'),TEAM_OWNER_CLICKUP_USER_ID:'61768248',MCP_PUBLIC_URL:'https://team.example/mcp'};
+  assert.equal(teamConfig({...env,CLICKUP_API_TOKEN:'pk_personal',MCP_OAUTH_ISSUER:'https://old.example'}).clientId,'test-client');
+  assert.throws(()=>teamConfig({...env,CLICKUP_CLIENT_ID:'field Client ID, Value: test-client'}),/credential format/);
+  assert.throws(()=>teamConfig({...env,CLICKUP_CLIENT_SECRET:'field Client Secret, Value: test-secret'}),/credential format/);
+});
 test('credentials are encrypted with authenticated encryption', () => {
   const key = Buffer.alloc(32, 7);
   const encrypted = encryptCredential('private-upstream-token', key, 'user-1');

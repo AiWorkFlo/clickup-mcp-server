@@ -52,6 +52,9 @@ export function teamConfig(env: NodeJS.ProcessEnv = process.env) {
   }
   const key = Buffer.from(env.TOKEN_ENCRYPTION_KEY!, 'base64');
   if (key.length !== 32 || !/^\d+$/.test(env.TEAM_OWNER_CLICKUP_USER_ID!)) throw new Error('Invalid team encryption key or owner ID.');
+  if (/\s/.test(env.CLICKUP_CLIENT_ID!.trim()) || /\s/.test(env.CLICKUP_CLIENT_SECRET!.trim())) {
+    throw new Error('Invalid ClickUp OAuth credential format.');
+  }
   const port = Number(env.PORT || '10000');
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Invalid PORT.');
   return { databaseUrl: env.DATABASE_URL!, clientId: env.CLICKUP_CLIENT_ID!.trim(), clientSecret: env.CLICKUP_CLIENT_SECRET!.trim(),
