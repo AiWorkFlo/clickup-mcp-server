@@ -110,7 +110,7 @@ export class Resolver {
     const teamRes = await this.http.get<{ teams: RawTeam[] }>('/team', 'the workspace');
     cost++;
     const team =
-      teamRes.teams.find((t) => t.id === this.workspaceId) ?? teamRes.teams[0];
+      this.workspaceId ? teamRes.teams.find((t) => String(t.id) === this.workspaceId) : teamRes.teams[0];
     if (!team) {
       throw new ClickUpToolError({
         what: 'This token can reach no ClickUp workspaces.',

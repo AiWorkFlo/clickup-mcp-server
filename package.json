@@ -41,7 +41,7 @@
   ],
   "author": "benthesoundguy",
   "contributors": [
-    "David Whatley (https://davidwhatley.com) \u2014 original clickup-mcp-server author",
+    "David Whatley (https://davidwhatley.com) — original clickup-mcp-server author",
     "ClickUp MCP Server Contributors"
   ],
   "license": "MIT",
@@ -54,11 +54,15 @@
   },
   "type": "module",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@modelcontextprotocol/sdk": "^1.31.0",
+    "express": "^5.3.0",
+    "pg": "^8.23.1",
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@types/express": "^5.0.6",
     "@types/node": "^18.19.26",
+    "@types/pg": "^8.23.1",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "eslint": "^8.56.0",

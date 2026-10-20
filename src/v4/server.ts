@@ -8,7 +8,7 @@
 
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { ClickUpHttp, type Clock } from './core/http.js';
+import { ClickUpHttp, type Clock, type RateBudget } from './core/http.js';
 import { TtlCache } from './core/cache.js';
 import { Resolver } from './core/resolve.js';
 import { ClickUpToolError } from './core/errors.js';
@@ -53,6 +53,7 @@ export interface BuildOptions {
   attachRoot?: string | null;
   /** Start in a degraded mode where every tool reports this instead of running. */
   configError?: string;
+  rateBudget?: RateBudget;
 }
 
 export interface BuiltServer {
@@ -69,6 +70,7 @@ export function buildContext(opts: BuildOptions): Ctx {
     clock: opts.clock,
     fetchImpl: opts.fetchImpl,
     onLog: log,
+    rateBudget: opts.rateBudget,
   });
   const cache = new TtlCache(opts.cacheTtlMs ?? 5 * 60 * 1000, opts.now ?? Date.now);
   const workspaceId = opts.workspaceId ?? '';

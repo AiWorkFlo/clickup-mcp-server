@@ -1,0 +1,7 @@
+.git
+node_modules
+build
+.env
+.env.*
+*.log
+.mcp-auth-token
