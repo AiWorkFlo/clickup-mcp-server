@@ -61,7 +61,12 @@ async function listTools() {
 describe('G1 — tool schema surface', () => {
   test(`fits in ${G1_MAX_SCHEMA_TOKENS} tokens`, async () => {
     const tools = await listTools();
-    const wire = JSON.stringify(tools);
+    // Preserve the compact native v4 budget. The requested 62-contract compatibility
+    // surface is measured separately because its schemas are intentionally additional.
+    const wire = JSON.stringify(tools.filter(t=>!t.name.startsWith('clickup_')));
+    const compatibility=tools.filter(t=>t.name.startsWith('clickup_'));
+    assert.equal(compatibility.length,62,'all compatibility contracts must be discoverable');
+    assert.ok(tokens(JSON.stringify(compatibility).length)<=26000,'compatibility schemas exceeded the explicit 26000-token ceiling');
     const t = tokens(wire.length);
     assert.ok(
       t <= G1_MAX_SCHEMA_TOKENS,
@@ -77,7 +82,9 @@ describe('G1 — tool schema surface', () => {
 
   test(`is at most ${G3_MAX_TOOLS} tools`, async () => {
     const tools = await listTools();
-    assert.ok(tools.length <= G3_MAX_TOOLS, `${tools.length} tools, budget ${G3_MAX_TOOLS}`);
+    const native=tools.filter(t=>!t.name.startsWith('clickup_'));
+    assert.ok(native.length <= G3_MAX_TOOLS, `${native.length} native tools, budget ${G3_MAX_TOOLS}`);
+    assert.equal(tools.length-native.length,62,'compatibility surface must contain exactly 62 contracts');
     assert.equal(tools.length, allTools.length, 'registry and wire must agree');
   });
 

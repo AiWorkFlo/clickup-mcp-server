@@ -1,11 +1,13 @@
 {
   "name": "clickup-mcp-server",
-  "version": "4.3.1",
+  "version": "4.4.0",
   "description": "A Model Context Protocol (MCP) server for ClickUp: 18 tools addressed by name rather than ID, with capability profiles that make it safe to hand to an untrusted agent",
   "main": "build/v4/index.js",
   "files": [
     "build",
     "scripts",
+    "skills",
+    "docs",
     "CHANGELOG.md"
   ],
   "bin": {
@@ -15,6 +17,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "capabilities": "npm run build && node scripts/export-capabilities.mjs",
     "dev": "ts-node --esm src/v4/index.ts",
     "start": "node build/v4/index.js",
     "start:v3": "node build/index.js",
@@ -54,8 +57,10 @@
   },
   "type": "module",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.31.0",
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "express": "^5.3.0",
+    "jmespath": "^0.16.0",
+    "markdown-it": "^14.3.3",
     "pg": "^8.23.1",
     "zod": "^3.25.76"
   },

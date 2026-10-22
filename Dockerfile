@@ -6,6 +6,8 @@ COPY tsconfig.json ./
 COPY src ./src
 COPY scripts ./scripts
 COPY test ./test
+COPY skills ./skills
+COPY docs ./docs
 RUN npm test && npm prune --omit=dev --ignore-scripts --no-audit
 
 FROM node:24.19.0-bookworm-slim AS runtime
@@ -14,6 +16,8 @@ WORKDIR /app
 COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/build ./build
 COPY --from=build --chown=node:node /app/scripts ./scripts
+COPY --from=build --chown=node:node /app/skills ./skills
+COPY --from=build --chown=node:node /app/docs ./docs
 COPY --from=build --chown=node:node /app/package.json ./package.json
 USER node
 EXPOSE 10000

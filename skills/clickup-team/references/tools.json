@@ -1,0 +1,4257 @@
+{
+  "server": {
+    "name": "clickup-team",
+    "version": "4.4.0"
+  },
+  "instructions": "This server exposes the existing name-based tools plus 62 clickup_* compatibility tool contracts. Call clickup_get_schema for exact support and public-API gaps before assuming official-plugin parity. Use workspaces (team mode) or clickup_get_workspace_members to verify the account scope. Read the bundled clickup-team://skill resource for workflows. Use clickup_get_operators before bulk execution. Never retry an ambiguous write automatically. Ask before irreversible changes and pass confirm:true only after approval. No reminder read/update, Doc-page attachment signing, private cross-asset search, or private Unified API access is implied. Use workspaces to list authorized ClickUp workspaces. Pass workspace_id to select a workspace. Every action uses your own ClickUp permissions. Ask the user before destructive actions and pass confirm: true only after approval.",
+  "tools": [
+    {
+      "name": "workspaces",
+      "description": "List workspaces authorized by your own ClickUp account and the default for this connection.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "find",
+      "description": "Find tasks anywhere in the workspace. Everything takes human names, not IDs: scope=\"Cavalry/Findings\", assignee=\"Ben\" or \"me\", status=\"in progress\". Omit scope to search the whole workspace. Returns a compact table. NOTE: text= is matched client-side over the tasks actually scanned (ClickUp has no server-side task search), and the reply always states the coverage — narrow with scope/status/assignee for a complete answer over a large workspace.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "string",
+            "description": "List or space: name, \"Space/Folder/List\" path, or ID. Omit = whole workspace."
+          },
+          "status": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Status names, e.g. [\"in progress\",\"review\"]"
+          },
+          "assignee": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Usernames, emails, or \"me\". Unresolvable names raise rather than return empty."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Tag names"
+          },
+          "due": {
+            "type": "string",
+            "description": "overdue | today | tomorrow | week | month | none | YYYY-MM-DD | A..B"
+          },
+          "text": {
+            "type": "string",
+            "description": "Case-insensitive substring of the task name"
+          },
+          "include_closed": {
+            "type": "boolean",
+            "description": "Include closed tasks (default false)"
+          },
+          "subtasks": {
+            "type": "boolean",
+            "description": "Include subtasks (default false)"
+          },
+          "detail": {
+            "type": "string",
+            "enum": [
+              "compact",
+              "full"
+            ],
+            "description": "Default compact"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Max rows, default 50, cap 200"
+          },
+          "order_by": {
+            "type": "string",
+            "enum": [
+              "due_date",
+              "created",
+              "updated",
+              "priority"
+            ]
+          },
+          "view": {
+            "type": "string",
+            "description": "Run a saved ClickUp View by name instead of building filters by hand"
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "task",
+      "description": "Read one task in full — description, custom fields, timestamps, optionally comments and subtasks. Takes a task ID (e.g. 86bben08h) or a custom ID (e.g. ABC-123).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Task ID or custom ID"
+          },
+          "comments": {
+            "type": "boolean",
+            "description": "Include comments (default false)"
+          },
+          "subtasks": {
+            "type": "boolean",
+            "description": "Include subtasks (default false)"
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "create",
+      "description": "Create one or more tasks in a list. Pass `tasks` as an array to create several in one call. The list is addressed by name or path (\"Cavalry/Findings\"); assignees, status and priority are all resolved from human names and validated before anything is written.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "type": "string",
+            "description": "List name, \"Space/Folder/List\" path, or ID"
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Task name"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "description": "Status name — validated against the list"
+                },
+                "assignees": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Usernames, emails, or \"me\""
+                },
+                "tags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "priority": {
+                  "type": "string",
+                  "description": "urgent | high | normal | low"
+                },
+                "due": {
+                  "type": "string",
+                  "description": "YYYY-MM-DD, \"today\", \"next friday\", \"in 3 days\", or \"none\""
+                },
+                "start": {
+                  "type": "string"
+                },
+                "estimate_hours": {
+                  "type": "number"
+                },
+                "parent": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": true
+            },
+            "description": "One entry per task. `name` is required on each."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "list",
+          "tasks"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "update",
+      "description": "Update, move, or delete one or more tasks. Pass several IDs to apply the same change to all of them. Set `move_to` to relocate tasks to another list, or `delete: true` to remove them. Status values are validated against the destination list before anything is written.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Task IDs (from `find`)"
+          },
+          "name": {
+            "type": "string",
+            "description": "Task name"
+          },
+          "description": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "description": "Status name — validated against the list"
+          },
+          "assignees": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Usernames, emails, or \"me\""
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "priority": {
+            "type": "string",
+            "description": "urgent | high | normal | low"
+          },
+          "due": {
+            "type": "string",
+            "description": "YYYY-MM-DD, \"today\", \"next friday\", \"in 3 days\", or \"none\""
+          },
+          "start": {
+            "type": "string"
+          },
+          "estimate_hours": {
+            "type": "number"
+          },
+          "tags_add": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Tag names to attach"
+          },
+          "tags_remove": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Tag names to detach"
+          },
+          "waits_on": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Task IDs this task is blocked by (it cannot start until they finish)"
+          },
+          "blocks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Task IDs that are blocked by this task"
+          },
+          "unblock": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Task IDs to remove a dependency with"
+          },
+          "link_to": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Task IDs to link (a reference, not a blocker)"
+          },
+          "unlink": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Task IDs to unlink"
+          },
+          "move_to": {
+            "type": "string",
+            "description": "Destination list. Moves are real when the \"Tasks in Multiple Lists\" ClickApp is enabled — status is preserved and remapped to the destination, and subtasks follow their parent. With it off ClickUp returns 200 and silently does nothing, so every move is verified by read-back and the call fails loudly if it did not take."
+          },
+          "delete": {
+            "type": "boolean",
+            "description": "Delete the tasks. Irreversible."
+          },
+          "remove_assignees": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Usernames to unassign"
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "ids"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "tree",
+      "description": "Show the workspace structure — spaces, folders and lists with their task counts. Use this to discover what exists and to get the exact list paths the other tools accept. Costs 2+S API calls and is cached for 5 minutes.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "string",
+            "description": "Limit to one space, by name or ID"
+          },
+          "match": {
+            "type": "string",
+            "description": "Only show lists whose path contains this substring"
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "meta",
+      "description": "What values are legal here. Returns the statuses a list accepts, the tags available in a space, and the workspace members. Ask this before guessing a status or assignee name — ClickUp answers an unknown status with an empty result that looks like \"no matches\".",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "string",
+            "description": "List or space, by name/path/ID. Omit for workspace-level info (members)."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "lists",
+      "description": "Create, rename, or delete lists and folders. Deleting a list destroys every task in it, so `confirm: true` is required for any delete.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "create",
+              "rename",
+              "delete"
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "list",
+              "folder"
+            ],
+            "description": "Default list"
+          },
+          "name": {
+            "type": "string",
+            "description": "New name (create/rename)"
+          },
+          "parent": {
+            "type": "string",
+            "description": "For create: the folder or space to create in, by name/path/ID"
+          },
+          "target": {
+            "type": "string",
+            "description": "For rename/delete: the list or folder to act on"
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          },
+          "from_template": {
+            "type": "string",
+            "description": "For create: build the list from a saved template, by template name"
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "whoami",
+      "description": "Identity, workspace, and server health — who the token belongs to, how much of the ClickUp rate budget is left, and what is cached.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "comment",
+      "description": "Read the comment thread on a task, or post a new comment. Omit `text` to read; supply it to post. Comments are where the reasoning behind a task usually lives, so read them before concluding a task is unclear or stale.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "task": {
+            "type": "string",
+            "description": "Task ID"
+          },
+          "text": {
+            "type": "string",
+            "description": "Comment to post. Omit to read existing comments."
+          },
+          "assign_to": {
+            "type": "string",
+            "description": "Assign the comment to a user, by name"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Max comments to read, default 30"
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "task"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "time",
+      "description": "Time tracking: start or stop a timer, log time after the fact, or report what has been tracked. Durations are in hours (\"1.5\") or \"90m\".",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "start",
+              "stop",
+              "current",
+              "log",
+              "report"
+            ]
+          },
+          "task": {
+            "type": "string",
+            "description": "Task ID — required for start and log"
+          },
+          "duration": {
+            "type": "string",
+            "description": "For log: \"1.5\" (hours) or \"90m\""
+          },
+          "when": {
+            "type": "string",
+            "description": "For log: the day, e.g. \"today\" or \"2026-08-14\""
+          },
+          "description": {
+            "type": "string"
+          },
+          "since": {
+            "type": "string",
+            "description": "For report: start of the window, default 7 days ago"
+          },
+          "who": {
+            "type": "string",
+            "description": "For report: a member name, default everyone"
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "fields",
+      "description": "Inspect a list's custom fields, or set a custom field value on a task. Field names and drop-down option labels are resolved for you — no field UUIDs needed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "type": "string",
+            "description": "List to inspect, by name/path/ID"
+          },
+          "task": {
+            "type": "string",
+            "description": "Task to write to"
+          },
+          "field": {
+            "type": "string",
+            "description": "Field name (with task, to set a value)"
+          },
+          "value": {
+            "type": "string",
+            "description": "Value to set. For drop-downs, the option label."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "docs",
+      "description": "Search ClickUp Docs, or read one. Docs live on the v3 API.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "search",
+              "read"
+            ],
+            "description": "Default search"
+          },
+          "query": {
+            "type": "string",
+            "description": "Substring of the doc name"
+          },
+          "id": {
+            "type": "string",
+            "description": "Doc ID, for read"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "goals",
+      "description": "Read or manage ClickUp Goals and their key results (the measurable targets under a goal). Goals belong to the workspace rather than to a list, and are addressed by name. Run the list action before creating — duplicate goal names are easy to make and impossible to tell apart afterwards.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "list",
+              "get",
+              "create",
+              "update",
+              "delete"
+            ]
+          },
+          "goal": {
+            "type": "string",
+            "description": "Goal name or ID — required for get/update/delete"
+          },
+          "name": {
+            "type": "string",
+            "description": "Goal name, for create or rename"
+          },
+          "due": {
+            "type": "string",
+            "description": "YYYY-MM-DD, \"next friday\", \"in 2 weeks\""
+          },
+          "owners": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Usernames or \"me\""
+          },
+          "description": {
+            "type": "string"
+          },
+          "key_results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "number",
+                    "currency",
+                    "boolean",
+                    "percentage"
+                  ]
+                },
+                "target": {
+                  "type": "number"
+                },
+                "current": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "name"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Targets to add under this goal"
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "chat",
+      "description": "Read or post in ClickUp Chat channels, addressed by name. Posting is visible to everyone in the channel and cannot be unsent through this tool, so treat it as publishing rather than as a note to self.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "channels",
+              "read",
+              "post",
+              "members"
+            ]
+          },
+          "channel": {
+            "type": "string",
+            "description": "Channel name or ID — required except for `channels`"
+          },
+          "text": {
+            "type": "string",
+            "description": "Message to post"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Messages to read, default 30"
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "checklist",
+      "description": "Manage the checklists inside a task — the sub-steps of one task, which are different from subtasks (subtasks are their own tasks; checklist items are not). Checklists and items are addressed by their text, so wording must match what is already there.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "task": {
+            "type": "string",
+            "description": "Task ID"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "list",
+              "add",
+              "add_item",
+              "rename",
+              "remove",
+              "check",
+              "uncheck"
+            ]
+          },
+          "checklist": {
+            "type": "string",
+            "description": "Checklist name"
+          },
+          "item": {
+            "type": "string",
+            "description": "Item text"
+          },
+          "new_text": {
+            "type": "string",
+            "description": "Replacement text, for rename"
+          },
+          "assignee": {
+            "type": "string",
+            "description": "Assign an item, by username"
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "task",
+          "action"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_add_tag_to_task",
+      "description": "Add existing tag to task. Tag must exist in space. Note: Will fail if tag doesn't exist.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "tag_name": {
+            "type": "string",
+            "description": "Name of the tag to add to the task. The tag must already exist in the space."
+          },
+          "task_id": {
+            "type": "string",
+            "description": "ID of task. Works with both regular task IDs and custom IDs (like 'DEV-1234'). Use clickup_search to find task ID by name if needed."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "tag_name",
+          "task_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_add_task_dependency",
+      "description": "Set a directional dependency where one task blocks the other. Use 'waiting_on' when task_id cannot start until depends_on is done, or 'blocking' when task_id is blocking depends_on. For non-blocking associations, use add_task_link instead.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "depends_on": {
+            "type": "string",
+            "description": "ID of the task that task_id depends on or is blocking. Works with regular and custom IDs."
+          },
+          "task_id": {
+            "type": "string",
+            "description": "ID of the task to set the dependency on. Works with regular and custom IDs (like 'DEV-1234'). Use clickup_search to find task ID by name if needed."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "waiting_on",
+              "blocking"
+            ],
+            "description": "Type of dependency to add: 'waiting_on' or 'blocking'."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "depends_on",
+          "task_id",
+          "type"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_add_task_link",
+      "description": "Link two tasks together. Creates a bidirectional association with no ordering or blocking. For blocking/dependency relationships, use add_task_dependency instead.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "links_to": {
+            "type": "string",
+            "description": "ID of the task to link to. Works with regular and custom IDs."
+          },
+          "task_id": {
+            "type": "string",
+            "description": "ID of the task to link from. Works with regular and custom IDs (like 'DEV-1234')."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "links_to",
+          "task_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_add_task_to_list",
+      "description": "Add a task to an additional list (keeps current home list). Requires the Tasks in Multiple Lists ClickApp to be enabled.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "list_id": {
+            "type": "string",
+            "description": "Numeric ID of the additional list to add the task to. The task remains in its original list. Resolve a list name with clickup_get_list (list_name) first."
+          },
+          "task_id": {
+            "type": "string",
+            "description": "ID of the task to add. Works with regular and custom IDs (like 'DEV-1234'). Use clickup_search to find task ID by name if needed."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "list_id",
+          "task_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_add_time_entry",
+      "description": "Add a manual time entry to a task. You can provide either (start + duration) OR (start + end). The tool will calculate missing values. Requires task_id, start time, and either duration or end time. Supports description, billable flag, and tags.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "billable": {
+            "type": "boolean",
+            "description": "Whether this time is billable. Default is workspace setting."
+          },
+          "description": {
+            "type": "string",
+            "description": "Description for the time entry. Keep short and simple, or omit for best compatibility."
+          },
+          "duration": {
+            "type": "string",
+            "description": "Duration of the time entry. Format as 'Xh Ym' (e.g., '1h 30m') or just minutes (e.g., '90m'). Either duration or end_time is required."
+          },
+          "end_time": {
+            "type": "string",
+            "description": "End time in YYYY-MM-DD HH:MM format (e.g., '2025-01-15 11:00'). Time is required for time tracking entries."
+          },
+          "start": {
+            "type": "string",
+            "description": "Start time in YYYY-MM-DD HH:MM format (e.g., '2025-01-15 09:30'). Time is required for time tracking entries."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of tag names to assign to the time entry."
+          },
+          "task_id": {
+            "type": "string",
+            "description": "Task ID (supports custom IDs like 'DEV-1234')"
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "start",
+          "task_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_attach_task_file",
+      "description": "Attach file to task. Requires task_id. File sources: 1) base64 + filename (small files under ~200KB only), 2) URL (http/https). For files on the local machine, use request_attachment_upload instead.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "auth_header": {
+            "type": "string",
+            "description": "Authorization header to use when downloading from the web URL."
+          },
+          "file_data": {
+            "type": "string",
+            "description": "Base64-encoded content of the file (without the data URL prefix)."
+          },
+          "file_name": {
+            "type": "string",
+            "description": "Name of the file to be attached (include the extension). Required when using file_data."
+          },
+          "file_url": {
+            "type": "string",
+            "description": "URL to download the file from (must start with http:// or https://)."
+          },
+          "task_id": {
+            "type": "string",
+            "description": "Task ID (supports custom IDs like 'DEV-1234')"
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "task_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_create_comment",
+      "description": "Create a comment or threaded reply on a task, list, or view. Supports Markdown (headings, bold, code blocks, tables). Use entity_type + entity_id for the target entity. Provide reply_to_id for a threaded reply.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "assignee": {
+            "type": "number",
+            "description": "User ID to assign the comment to. Use clickup_resolve_assignees to convert email, username, or \"me\" to user ID if needed."
+          },
+          "comment_text": {
+            "type": "string",
+            "description": "Comment content. Supports Markdown formatting. To @mention a user, write a markdown link [@Name](#user_mention#user_id) inline, e.g. 'Hey [@Jane](#user_mention#81344), please review' — user_id MUST be a numeric ClickUp user id from clickup_resolve_assignees (the display name is resolved server-side)."
+          },
+          "entity_id": {
+            "type": "string",
+            "description": "ID of the entity to comment on."
+          },
+          "entity_type": {
+            "type": "string",
+            "enum": [
+              "task",
+              "list",
+              "view"
+            ],
+            "description": "Entity type to comment on. Use with entity_id."
+          },
+          "notify_all": {
+            "type": "boolean",
+            "description": "Whether to notify all assignees. Default is false."
+          },
+          "reply_to_id": {
+            "type": "string",
+            "description": "ID of a parent comment to reply to. When provided, the comment is posted as a threaded reply instead of a top-level comment."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "comment_text"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_create_document",
+      "description": "Create a document in a ClickUp space, folder, or list. Requires name, parent info, visibility and create_page flag.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "create_page": {
+            "type": "boolean",
+            "description": "Whether to create an initial blank page"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name and Title of the document"
+          },
+          "parent": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "ID of the parent container (space, folder, or list)"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "4",
+                  "5",
+                  "6",
+                  "7",
+                  "12"
+                ],
+                "description": "Type of the parent container ('4'=space, '5'=folder, '6'=list, '7'=everything, '12'=workspace)"
+              }
+            },
+            "required": [
+              "id",
+              "type"
+            ],
+            "additionalProperties": false,
+            "description": "Parent container information"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "PUBLIC",
+              "PRIVATE",
+              "PERSONAL",
+              "HIDDEN"
+            ],
+            "description": "Document visibility setting"
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "create_page",
+          "name",
+          "parent",
+          "visibility"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_create_document_page",
+      "description": "Create a new page in a ClickUp document.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "Content of the page"
+          },
+          "content_format": {
+            "type": "string",
+            "enum": [
+              "text/md",
+              "text/plain"
+            ],
+            "description": "The format of the page content"
+          },
+          "document_id": {
+            "type": "string",
+            "description": "ID of the document to create the page in (e.g. 'ad-909705'). In ClickUp doc URLs, the document_id is always the first ID after /docs/ or /v/dc/."
+          },
+          "name": {
+            "type": "string",
+            "description": "Name and title of the page"
+          },
+          "parent_page_id": {
+            "type": "string",
+            "description": "ID of the parent page (if this is a sub-page)"
+          },
+          "sub_title": {
+            "type": "string",
+            "description": "Subtitle of the page"
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "content",
+          "document_id",
+          "name"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_create_folder",
+      "description": "Create folder in ClickUp space. Use space_id (preferred) or space_name + folder name. Supports override_statuses for folder-specific statuses. Use clickup_create_list_in_folder to add lists after creation.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the folder."
+          },
+          "override_statuses": {
+            "type": "boolean",
+            "description": "Whether to override space statuses with folder-specific statuses."
+          },
+          "space_id": {
+            "type": "string",
+            "description": "ID of the space to create the folder in (preferred). Provide this instead of space_name if you already have it."
+          },
+          "space_name": {
+            "type": "string",
+            "description": "Name of the space to create the folder in. Use this when space_id is not available."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_create_list",
+      "description": "Create a list in a ClickUp space. Requires name and space_name or space_id. For lists in folders, use clickup_create_list_in_folder.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "assignee": {
+            "type": "number",
+            "description": "User ID to assign the list to. Use clickup_resolve_assignees to convert email, username, or \"me\" to user ID if needed."
+          },
+          "content": {
+            "type": "string",
+            "description": "Description or content of the list."
+          },
+          "due_date": {
+            "type": "string",
+            "description": "Due date in YYYY-MM-DD format or date-time in YYYY-MM-DD HH:MM format"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the list."
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "urgent",
+              "high",
+              "normal",
+              "low"
+            ],
+            "description": "Priority value: 'urgent', 'high', 'normal', or 'low'."
+          },
+          "space_id": {
+            "type": "string",
+            "description": "ID of the space to create the list in. Provide this instead of space_name if you already have the ID."
+          },
+          "space_name": {
+            "type": "string",
+            "description": "Name of the space to create the list in. Alternative to space_id; one of them must be provided."
+          },
+          "status": {
+            "type": "string",
+            "description": "Status of the list."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_create_list_in_folder",
+      "description": "Create a list in a ClickUp folder. Requires folder_id and list name. Supports content and status. If you need to get a folder ID from a folder name, use clickup_get_folder first.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "Description or content of the list."
+          },
+          "folder_id": {
+            "type": "string",
+            "description": "ID of the folder to create the list in."
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the list."
+          },
+          "status": {
+            "type": "string",
+            "description": "Status of the list (uses folder default if not specified)."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "folder_id",
+          "name"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_create_reminder",
+      "description": "Experimental create-only reminder integration already present in this repository. Supply title and due_date. The endpoint is absent from ClickUp public API specifications and may be unavailable for some accounts.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Optional description with additional details for the reminder."
+          },
+          "due_date": {
+            "type": "string",
+            "description": "Due date in YYYY-MM-DD format or date-time in YYYY-MM-DD HH:MM format (e.g., '2025-12-31' or '2025-12-31 14:30'). Uses your user timezone."
+          },
+          "title": {
+            "type": "string",
+            "description": "Title for the reminder. Ask the user what they want to be reminded about."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "due_date",
+          "title"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_create_task",
+      "description": "Create a task in a ClickUp list. Requires name and list_id — always ask the user which list. Supports assignees (user IDs, emails, usernames, or \"me\") and task_type by name.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "assignees": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of assignee user IDs. Use clickup_resolve_assignees to convert emails, usernames, or \"me\" to user IDs if needed."
+          },
+          "check_required_custom_fields": {
+            "type": "boolean",
+            "description": "Flag to check if all required custom fields are set before saving the task."
+          },
+          "custom_fields": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "ID of the custom field"
+                },
+                "value": {
+                  "type": "string",
+                  "description": "Value for the custom field. Pass as a string — the format depends on the field type: text/url/email: the value directly. phone: must be a valid phone number in international format (e.g. '+1 234 567 8901'). dropdown: the option UUID. number/money/rating: the number as a string (e.g. '42'). date: a date string in YYYY-MM-DD or YYYY-MM-DD HH:MM format (auto-converted to timestamp). checkbox/button: 'true' or 'false'. labels: JSON array of UUIDs (e.g. '[\"uuid1\",\"uuid2\"]'). relationships/people/files: JSON with add/rem arrays (e.g. '{\"add\":[\"id1\"],\"rem\":[\"id2\"]}'). progress: JSON with current value (e.g. '{\"current\":50}'). location: JSON with location object (e.g. '{\"location\":{\"lat\":-28,\"lng\":153},\"formatted_address\":\"...\"}')."
+                }
+              },
+              "required": [
+                "id",
+                "value"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Array of custom field values to set on the task. Each object must have an 'id' and 'value' property."
+          },
+          "due_date": {
+            "type": "string",
+            "description": "Due date in YYYY-MM-DD or YYYY-MM-DD HH:MM format"
+          },
+          "list_id": {
+            "type": "string",
+            "description": "List ID. Use clickup_get_list to resolve names."
+          },
+          "markdown_description": {
+            "type": "string",
+            "description": "Task description in markdown format."
+          },
+          "name": {
+            "type": "string",
+            "description": "Task name. Ask the user what they want to name the task."
+          },
+          "parent": {
+            "type": "string",
+            "description": "Parent task ID to create as subtask."
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "urgent",
+              "high",
+              "normal",
+              "low"
+            ]
+          },
+          "start_date": {
+            "type": "string",
+            "description": "Start date in YYYY-MM-DD or YYYY-MM-DD HH:MM format"
+          },
+          "status": {
+            "type": "string",
+            "description": "Override default status. Omit to use list defaults."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Tag names (must already exist in the space)."
+          },
+          "task_type": {
+            "type": "string",
+            "description": "Name of the task type (e.g., 'Bug', 'Feature', 'Milestone'). The type must exist in the workspace. If not specified, the default task type will be used."
+          },
+          "time_estimate": {
+            "type": "string",
+            "description": "Time estimate in minutes (e.g., '150' for 2h 30m)."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "list_id",
+          "name"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_create_task_comment",
+      "description": "[DEPRECATED → clickup_create_comment] Legacy name for creating a task comment, kept for clients with stale tool listings. Prefer the replacement tool; it takes entity_id instead of task_id.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "assignee": {
+            "type": "number",
+            "description": "User ID to assign the comment to. Use clickup_resolve_assignees to convert email, username, or \"me\" to user ID if needed."
+          },
+          "comment_text": {
+            "type": "string",
+            "description": "Comment content. Supports Markdown formatting."
+          },
+          "notify_all": {
+            "type": "boolean",
+            "description": "Whether to notify all assignees. Default is false."
+          },
+          "task_id": {
+            "type": "string",
+            "description": "Task ID (supports custom IDs like 'DEV-1234')"
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "comment_text",
+          "task_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_delete_comment",
+      "description": "Delete a comment by comment_id. This cannot be undone. Use clickup_get_task_comments or clickup_get_threaded_comments to find the comment ID.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "comment_id": {
+            "type": "string",
+            "description": "ID of the comment to delete. Use clickup_get_task_comments or clickup_get_threaded_comments to find the comment ID."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "comment_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_delete_task",
+      "description": "Delete a task by task_id (supports custom IDs like 'DEV-1234'). Always confirm the task_id with the user before deleting.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "description": "Task ID to delete (supports custom IDs like 'DEV-1234')"
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "task_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_download_document_page_attachment",
+      "description": "UNAVAILABLE: No public API for Doc page attachment lookup and signed downloads. This compatibility contract returns an explicit error.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "attachment_id": {
+            "type": "string",
+            "description": "Attachment ID — the `id` field returned by clickup_list_document_page_attachments for the page."
+          },
+          "page_id": {
+            "type": "string",
+            "description": "ID of the doc page (e.g. 'ad-2675877'). In ClickUp doc URLs, the page_id is the second ID after /docs/ or /v/dc/. Use list_document_pages to discover page IDs."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "attachment_id",
+          "page_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_download_task_attachment",
+      "description": "Find an attachment on an accessible task and return its public API metadata URL. Cannot mint private signed download links or guarantee expiry. The URL may require additional authorization.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "attachment_id": {
+            "type": "string",
+            "description": "Attachment ID. List a task's attachments with clickup_get_task using include: [\"attachments\"]."
+          },
+          "task_id": {
+            "type": "string",
+            "description": "Task ID (supports custom IDs like 'DEV-1234')"
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "attachment_id",
+          "task_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_execute_operator",
+      "description": "Execute one enabled task bulk adapter after inspecting clickup_get_operators. Uses sequential public API calls and returns per-item outcomes. Not atomic. Supports JMESPath response projection. Do not retry timed-out writes.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "Request body shaped per the schema shown by clickup_get_operators."
+          },
+          "model": {
+            "type": "string",
+            "description": "Lowercase model name from clickup_get_operators."
+          },
+          "operation_id": {
+            "type": "string",
+            "description": "Underlying API operationId; only needed when clickup_get_operators lists several for the pair."
+          },
+          "operator": {
+            "type": "string",
+            "enum": [
+              "get",
+              "list",
+              "create",
+              "update",
+              "delete",
+              "get_many",
+              "list_children",
+              "duplicate",
+              "merge",
+              "archive",
+              "unarchive",
+              "restore",
+              "search",
+              "move",
+              "create_many",
+              "update_many",
+              "delete_many"
+            ],
+            "description": "Operator from the canonical taxonomy, e.g. `get_many`, `update_many`. Only enabled pairs are accepted."
+          },
+          "parameters": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "Path and query parameters keyed by the names shown by clickup_get_operators (e.g. `list_id`). workspace_id is filled in automatically."
+          },
+          "query": {
+            "type": "string",
+            "description": "Optional JMESPath expression applied to the response to return only what you need, e.g. `items[*].{id: id, name: name}`."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "model",
+          "operator"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_filter_tasks",
+      "description": "Retrieve tasks with combined filters (tags, lists, folders, spaces, statuses, assignees, due date range, completion date range, custom field values). Multiple values within a filter use OR logic; across filters, AND logic applies (custom_fields entries also AND together). Best for filtering tasks by structured field values. For text/keyword search across all workspace content, use search instead. Custom field filters need field IDs — discover them with clickup_get_custom_fields. Results are paginated at 100 tasks per page: the response includes has_more and next_page, and when has_more is true you MUST call again with page set to next_page (repeating until has_more is false) to retrieve every matching task — a single call is not guaranteed to be complete. Assignees must be numeric user IDs — use clickup_resolve_assignees to convert names/emails/\"me\". Date filters use YYYY-MM-DD. For a single task by ID, use clickup_get_task.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "assignees": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Filter by assignee user IDs. Multiple IDs use OR logic. Use clickup_resolve_assignees to convert names/emails/\"me\" first."
+          },
+          "custom_fields": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field_id": {
+                  "type": "string",
+                  "description": "Custom field ID. Discover fields with clickup_get_custom_fields — one unrecognized field_id makes the API silently drop ALL custom field filters in the call and return unfiltered results. Formula, location, button, votes, signature, rollup, progress, and app fields cannot be filtered at all (any operator errors)."
+                },
+                "operator": {
+                  "type": "string",
+                  "enum": [
+                    "=",
+                    "==",
+                    "<",
+                    "<=",
+                    ">",
+                    ">=",
+                    "!=",
+                    "!==",
+                    "IS NULL",
+                    "IS NOT NULL",
+                    "RANGE",
+                    "ANY",
+                    "ALL",
+                    "NOT ANY",
+                    "NOT ALL"
+                  ],
+                  "description": "On text fields '=' means contains and '==' exact match; on single-value non-text fields (number, money, date, rating, checkbox, dropdown) use '=' or '!=' (exact) — '==' and '!==' only work on text fields. <, <=, >, >=, RANGE order numbers/dates. Multi-value fields (labels, people, relationships) require ANY/ALL/NOT ANY/NOT ALL, with a non-empty JSON array value. IS NULL/IS NOT NULL match unset/set fields."
+                },
+                "value": {
+                  "type": "string",
+                  "description": "Filter value as a string. Omit for IS NULL/IS NOT NULL. Formats: text as-is; dropdown: option UUID, or the option's orderindex when the field's type_config.options is present (those legacy dropdowns store numeric values); number/money/rating: '42'; date: YYYY-MM-DD or YYYY-MM-DD HH:MM (auto-converted to a timestamp for <, <=, >, >=, RANGE; date-only values resolve to 00:00 in your timezone); RANGE: JSON array of two numbers/dates (e.g. '[1, 5]'); ANY/ALL/NOT ANY/NOT ALL: JSON array — labels: option UUIDs, people: numeric user IDs, task/list relationships: task IDs (e.g. '[\"uuid1\",\"uuid2\"]'). For = or != on Date fields pass a millisecond epoch; date strings auto-convert only for the ordering operators."
+                }
+              },
+              "required": [
+                "field_id",
+                "operator"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Filter by custom field values. Entries combine with AND (and with all other filters)."
+          },
+          "date_closed_from": {
+            "type": "string",
+            "description": "Filter tasks completed on or after. Format: YYYY-MM-DD"
+          },
+          "date_closed_to": {
+            "type": "string",
+            "description": "Filter tasks completed on or before. Format: YYYY-MM-DD"
+          },
+          "due_date_from": {
+            "type": "string",
+            "description": "Filter tasks with due date on or after. Format: YYYY-MM-DD"
+          },
+          "due_date_to": {
+            "type": "string",
+            "description": "Filter tasks with due date on or before. Format: YYYY-MM-DD"
+          },
+          "folder_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Filter by Folder IDs. Multiple IDs use OR logic (matches tasks in ANY of the specified folders)."
+          },
+          "include_closed": {
+            "type": "boolean",
+            "description": "Include closed tasks in results"
+          },
+          "list_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Filter by List IDs. Multiple IDs use OR logic (matches tasks in ANY of the specified lists)."
+          },
+          "order_by": {
+            "type": "string",
+            "enum": [
+              "id",
+              "created",
+              "updated",
+              "due_date"
+            ],
+            "description": "Sort results by field. Default direction is descending — newest first for created/updated. Set reverse: true for ascending (oldest first)."
+          },
+          "page": {
+            "type": "number",
+            "description": "0-indexed page number. Each page returns up to 100 tasks. When a response has has_more=true, request the next page using its next_page value, and keep going until has_more=false to retrieve every matching task."
+          },
+          "reverse": {
+            "type": "boolean",
+            "description": "Sort ascending (oldest first) instead of the default descending (newest first). Leave unset/false to get the most recently created/updated tasks first."
+          },
+          "space_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Filter by Space IDs. Multiple IDs use OR logic (matches tasks in ANY of the specified spaces)."
+          },
+          "statuses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Filter by task status names. Multiple statuses use OR logic (matches tasks with ANY of the specified statuses)."
+          },
+          "subtasks": {
+            "type": "boolean",
+            "description": "Include subtasks in results (default: true)"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Filter by tag names. Multiple tags use OR logic (matches tasks with ANY of the specified tags)."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_find_member_by_name",
+      "description": "Get a member in the ClickUp workspace by name or email. Returns the member object if found, or null if not found.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name_or_email": {
+            "type": "string",
+            "description": "The name or email of the member to find."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "name_or_email"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_get_bulk_tasks_time_in_status",
+      "description": "Get the time multiple tasks have spent in each status (bulk operation, up to 100 tasks). Returns a map of task IDs to their status history and current status time data. Requires the \"Total time in Status\" ClickApp to be enabled in the workspace.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "task_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of task IDs to get time in status for (1-100 tasks). Works with both regular task IDs and custom IDs (like 'DEV-1234')."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "task_ids"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_get_chat_channel_messages",
+      "description": "Get messages for a chat channel. Messages with has_replies=true have threads fetchable via clickup_get_chat_message_replies. Supports pagination. Channel URLs look like /<ws>/v/cn/<channel_id> or /<ws>/chat/r/<channel_id>. Set include_reactions to true to see who reacted (limit must be 25 or fewer).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "channel_id": {
+            "type": "string",
+            "description": "ID of the chat channel to get messages from."
+          },
+          "content_format": {
+            "type": "string",
+            "enum": [
+              "text/plain",
+              "text/md"
+            ],
+            "description": "Response content format."
+          },
+          "cursor": {
+            "type": "string",
+            "description": "Cursor for pagination. Use the next_cursor value from the previous response to fetch the next page of results."
+          },
+          "include_reactions": {
+            "type": "boolean",
+            "description": "When true, attach reactions (count and reacted_by_me per emoji shortcode) to each returned item. Costs one extra upstream call per item, so limit must be 25 or fewer. Default false."
+          },
+          "limit": {
+            "type": "number",
+            "description": "Maximum number of messages to return (1-100). Defaults to 100, or 25 when include_reactions is true; values above 25 are rejected together with include_reactions."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "channel_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_get_chat_channels",
+      "description": "List chat channels in the workspace with pagination support.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string",
+            "description": "Cursor for pagination. Use the next_cursor value from the previous response to fetch the next page of results."
+          },
+          "limit": {
+            "type": "number",
+            "description": "Maximum number of channels to return (1-100)."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_get_chat_message_replies",
+      "description": "Get threaded replies for a chat message by message_id. Supports pagination. Chat thread URLs (/<ws>/v/cn/<channel_id>/t/<id> or /<ws>/chat/r/<channel_id>/t/<id>) end in a chat message id — pass it here, not to clickup_get_task. That id is usually the thread root but can be a reply inside the thread; if no replies come back, find the thread root via clickup_get_chat_channel_messages on the channel. Set include_reactions to true to see who reacted (limit must be 25 or fewer).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "content_format": {
+            "type": "string",
+            "enum": [
+              "text/plain",
+              "text/md"
+            ],
+            "description": "Response content format."
+          },
+          "cursor": {
+            "type": "string",
+            "description": "Cursor for pagination. Use the next_cursor value from the previous response to fetch the next page of results."
+          },
+          "include_reactions": {
+            "type": "boolean",
+            "description": "When true, attach reactions (count and reacted_by_me per emoji shortcode) to each returned item. Costs one extra upstream call per item, so limit must be 25 or fewer. Default false."
+          },
+          "limit": {
+            "type": "number",
+            "description": "Maximum number of replies to return (1-100). Defaults to 100, or 25 when include_reactions is true; values above 25 are rejected together with include_reactions."
+          },
+          "message_id": {
+            "type": "string",
+            "description": "ID of the chat message to get replies from."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "message_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_get_current_time_entry",
+      "description": "Get the currently running time entry, if any. No parameters needed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_get_custom_fields",
+      "description": "Get custom field definitions at any hierarchy level (list, folder, space, or workspace). Returns field IDs, types, and options for dropdowns/labels. Use this to discover available custom fields before setting values on tasks. Multiple scopes can be queried in a single call.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "folder_id": {
+            "type": "string",
+            "description": "Folder ID. Returns custom fields defined on this folder."
+          },
+          "include_workspace": {
+            "type": "boolean",
+            "description": "If true, returns workspace-level custom fields."
+          },
+          "list_id": {
+            "type": "string",
+            "description": "List ID. Returns custom fields defined on this list."
+          },
+          "space_id": {
+            "type": "string",
+            "description": "Space ID. Returns custom fields defined on this space."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_get_document_pages",
+      "description": "Get the full content of specific pages by page ID. Use list_document_pages first to discover available page IDs.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "content_format": {
+            "type": "string",
+            "enum": [
+              "text/plain",
+              "text/md"
+            ],
+            "description": "Response content format."
+          },
+          "document_id": {
+            "type": "string",
+            "description": "ID of the document (e.g. 'ad-909705'). In ClickUp doc URLs the path is either /{workspace_id}/docs/{document_id}/{page_id} or /{workspace_id}/v/dc/{document_id}/{page_id}. The document_id is always the first ID after /docs/ or /v/dc/."
+          },
+          "page_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of page IDs to retrieve (e.g. ['ad-2675877']). In ClickUp doc URLs, the page_id is the second ID after /docs/ or /v/dc/. If the URL contains only one ID (e.g. /{workspace_id}/docs/{document_id}), that is the document_id — use list_document_pages to discover page IDs."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "document_id",
+          "page_ids"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_get_folder",
+      "description": "Get folder details by folder_id or folder_name (+ space info). Use to resolve folder names to IDs.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "folder_id": {
+            "type": "string",
+            "description": "ID of the folder to retrieve."
+          },
+          "folder_name": {
+            "type": "string",
+            "description": "Name of the folder to retrieve. When using this, you must also provide space_id or space_name."
+          },
+          "space_id": {
+            "type": "string",
+            "description": "ID of the space containing the folder (required with folder_name)."
+          },
+          "space_name": {
+            "type": "string",
+            "description": "Name of the space containing the folder (required with folder_name)."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_get_list",
+      "description": "Get list details by list_id or list_name. Returns id, name, content, space info, and configured statuses. Use to resolve list names to IDs.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "list_id": {
+            "type": "string",
+            "description": "ID of the list to retrieve."
+          },
+          "list_name": {
+            "type": "string",
+            "description": "List name as displayed in ClickUp. Matching ignores case and surrounding whitespace, preferring an exact match. If several lists share the name, the first match is returned — verify the space in the result. If not found, confirm the name with the user rather than retrying variants."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_get_operators",
+      "description": "List the five bulk task adapters enabled on this server, including required inputs and their public API implementation. Filter by models or model_operators.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "model_operators": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Restrict the output to these `<model>.<operator>` pairs."
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Restrict the output to every enabled operator of these models."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_get_schema",
+      "description": "Inspect this server tool support, public-API parity gaps, source specifications, and the enabled task bulk adapters. Returns structured capability metadata.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "detailed": {
+            "type": "boolean",
+            "description": "Include the long-form description of each entity and relationship instead of the one-line summary."
+          },
+          "entities_only": {
+            "type": "boolean",
+            "description": "Return only the entity list — no relationships, no diagram."
+          },
+          "names": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Restrict the output to these entity names (lowercase). Only enabled models are returned."
+          },
+          "tier": {
+            "type": "string",
+            "enum": [
+              "primary",
+              "secondary",
+              "attribute"
+            ],
+            "description": "Minimum importance tier to include: `primary` (overview), `secondary`, or `attribute` (everything, the default)."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_get_task",
+      "description": "Retrieve a ClickUp task by ID (supports custom IDs like 'DEV-1234'). Returns a compact summary by default — core fields are always included, large sections appear as counts only (e.g. custom_fields_count: 3). Use include to fetch full data for specific sections: include: [\"custom_fields\", \"description\"]. Set expand_statuses=true to list valid statuses for update_task. URL disambiguation: a bare /t/<id> or /t/<workspace>/<id> ClickUp URL is a task, but in chat thread URLs (/v/cn/<channel_id>/t/<id> or /chat/r/<channel_id>/t/<id>) the trailing id is a chat MESSAGE id — use clickup_get_chat_message_replies for those.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "expand_statuses": {
+            "type": "boolean",
+            "description": "When true, returns the full set of statuses configured on the task's list (including any inherited from the parent folder or space) under `available_statuses`. Use to discover which status values can be assigned via update_task. Off by default to keep responses lean."
+          },
+          "include": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "attachments",
+                "checklists",
+                "custom_fields",
+                "dependencies",
+                "description",
+                "linked_tasks",
+                "subtasks",
+                "watchers"
+              ]
+            },
+            "description": "Sections to return in full. Without this, large sections appear as counts (e.g. custom_fields_count: 3). Available: attachments (metadata only — id, title, extension, mimetype, size, date, source; use clickup_download_task_attachment to get a download URL), checklists (items + completion), custom_fields (field values), dependencies (blocking/waiting-on relationships), description (full text — summary truncates at 10k chars), linked_tasks (linked task IDs), subtasks (triggers subtask fetch from API), watchers (watching users)."
+          },
+          "task_id": {
+            "type": "string",
+            "description": "Task ID (supports custom IDs like 'DEV-1234')"
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "task_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_get_task_comments",
+      "description": "Get task comments with reply_count per comment. Use clickup_get_threaded_comments for replies when reply_count > 0. Supports pagination via start/start_id.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "number",
+            "description": "Timestamp (in milliseconds) to start retrieving comments from. Used for pagination."
+          },
+          "start_id": {
+            "type": "string",
+            "description": "Comment ID to start from. Used together with start for pagination."
+          },
+          "task_id": {
+            "type": "string",
+            "description": "Task ID (supports custom IDs like 'DEV-1234')"
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "task_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_get_task_time_in_status",
+      "description": "Get the time a task has spent in each status. Returns the current status with elapsed time and the full status history with time spent in each status. Requires the \"Total time in Status\" ClickApp to be enabled in the workspace.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "description": "ID of task. Works with both regular task IDs and custom IDs (like 'DEV-1234'). Use clickup_search to find task ID by name if needed."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "task_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_get_threaded_comments",
+      "description": "Get threaded replies for a comment by comment_id. Use clickup_get_task_comments first to find comments with reply_count > 0.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "comment_id": {
+            "type": "string",
+            "description": "ID of the parent comment to get threaded replies for."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "comment_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_get_time_entries",
+      "description": "Get time entries with optional filtering by task, date range, assignee, and billable status. Pass task_id to scope to a single task, or omit for workspace-wide results. IMPORTANT: without assignee, only the authenticated user's entries are returned — pass 'any' to get all users' entries, or specific user IDs (comma-separated) for targeted queries.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "assignee": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Filter by assignee user IDs. Pass numeric user IDs (e.g. ['123', '456']) or include 'any' to get ALL users' entries. IMPORTANT: when omitted, the API returns only the authenticated user's entries. Use get_workspace_members to look up user IDs."
+          },
+          "end_date": {
+            "type": "string",
+            "description": "End date in YYYY-MM-DD format or date-time in YYYY-MM-DD HH:MM format"
+          },
+          "is_billable": {
+            "type": "boolean",
+            "description": "Filter by billable status. Set to true for only billable entries, false for non-billable. Omit to get all entries."
+          },
+          "start_date": {
+            "type": "string",
+            "description": "Start date in YYYY-MM-DD format or date-time in YYYY-MM-DD HH:MM format"
+          },
+          "task_id": {
+            "type": "string",
+            "description": "Task ID to scope entries to (supports custom IDs like 'DEV-1234'). Omit to query workspace-wide."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_get_workspace_hierarchy",
+      "description": "Get workspace hierarchy (spaces, folders, lists) with pagination and depth control. Use to browse the structure or to find a space, folder, or list whose name is unknown. When the name is known, clickup_get_list and clickup_get_folder resolve it to an id directly; task tools take ids only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string",
+            "description": "Pagination cursor from previous response. Use to fetch next page of spaces"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Maximum number of spaces to return per page (default: 10, max: 50)"
+          },
+          "max_depth": {
+            "type": "string",
+            "enum": [
+              "0",
+              "1",
+              "2"
+            ],
+            "description": "Maximum depth of hierarchy to return: 0=spaces only, 1=spaces+folders, 2=spaces+folders+lists (default: 2)"
+          },
+          "space_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Filter to return only specific spaces by ID."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_get_workspace_members",
+      "description": "List all members in the workspace. Most tools resolve assignees automatically — use only when you need the full member list.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_list_document_page_attachments",
+      "description": "UNAVAILABLE: Public attachments API supports tasks and file custom fields, not Doc pages. This compatibility contract returns an explicit error.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string",
+            "description": "Cursor from a previous response to fetch the next page of results."
+          },
+          "limit": {
+            "type": "number",
+            "description": "Maximum number of attachments to return (1-100, default 50)."
+          },
+          "page_id": {
+            "type": "string",
+            "description": "ID of the doc page (e.g. 'ad-2675877'). In ClickUp doc URLs, the page_id is the second ID after /docs/ or /v/dc/. Use list_document_pages to discover page IDs."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "page_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_list_document_pages",
+      "description": "List page names and structure of a document (no content). Use get_document_pages to fetch full page content by page ID.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "ID of the document (e.g. 'ad-909705'). In ClickUp doc URLs the path is either /{workspace_id}/docs/{document_id} or /{workspace_id}/v/dc/{document_id}. The document_id is always the first ID after /docs/ or /v/dc/."
+          },
+          "max_page_depth": {
+            "type": "number",
+            "description": "Maximum depth of pages to retrieve (-1 for unlimited)"
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "document_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_merge_tasks",
+      "description": "Merge one or more source tasks into a target task. The target task survives and absorbs content from the source tasks, which are consumed. Destination field values take precedence on conflicts. Works with both regular task IDs and custom IDs (like 'DEV-1234').",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "source_task_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of task IDs to merge into the target task. These tasks will be consumed/deleted after merging. Works with both regular task IDs and custom IDs (like 'DEV-1234')."
+          },
+          "task_id": {
+            "type": "string",
+            "description": "ID of the target/destination task that will survive the merge. Source tasks will be merged into this task. Works with both regular task IDs and custom IDs (like 'DEV-1234')."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "source_task_ids",
+          "task_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_move_task",
+      "description": "Move a root task to a new home list. Requires task_id (regular or custom ID) and a numeric list_id — resolve list names with clickup_get_list (list_name) first. Subtasks cannot be moved; move the parent instead. The task's current status must exist in the destination list; otherwise set a matching status with clickup_update_task before moving.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "list_id": {
+            "type": "string",
+            "description": "Numeric ID of the destination list. Resolve a list name with clickup_get_list (list_name) first."
+          },
+          "task_id": {
+            "type": "string",
+            "description": "ID of the task to move. Works with regular and custom IDs (like 'DEV-1234'). Use clickup_search to find task ID by name if needed."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "list_id",
+          "task_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_react_to_chat_message",
+      "description": "Add or remove the authenticated user's emoji reaction on a chat message or reply. Reactions are primary lowercase emoji shortcodes such as \"+1\", \"heart\", \"eyes\", \"white_check_mark\", \"tada\", \"rocket\" (wrapping colons are optional); aliases like \"thumbsup\" or \"thumbs_up\" are rejected, and custom workspace emoji are addressed by name. Adding a reaction that is already present, or removing one that is absent, fails with a \"nothing changed\" error. Only the caller's own reactions are affected.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "add",
+              "remove"
+            ],
+            "description": "'add' puts the authenticated user's reaction on the message; 'remove' takes it off."
+          },
+          "message_id": {
+            "type": "string",
+            "description": "ID of the chat message or reply to react to. Find it via clickup_get_chat_channel_messages or clickup_get_chat_message_replies."
+          },
+          "reaction": {
+            "type": "string",
+            "description": "Primary emoji shortcode, lowercase, e.g. \"+1\", \"heart\", \"eyes\". Aliases such as \"thumbsup\" are not accepted."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "action",
+          "message_id",
+          "reaction"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_remove_tag_from_task",
+      "description": "Remove tag from task. Only removes tag-task association, tag remains in space.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "tag_name": {
+            "type": "string",
+            "description": "Name of the tag to remove from the task."
+          },
+          "task_id": {
+            "type": "string",
+            "description": "ID of task. Works with both regular task IDs and custom IDs (like 'DEV-1234'). Use clickup_search to find task ID by name if needed."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "tag_name",
+          "task_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_remove_task_dependency",
+      "description": "Remove a directional waiting_on or blocking dependency between two tasks. Requires task_id, depends_on, and type.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "depends_on": {
+            "type": "string",
+            "description": "ID of the task that was in the dependency relationship. Works with both regular task IDs and custom IDs (like 'DEV-1234')."
+          },
+          "task_id": {
+            "type": "string",
+            "description": "ID of the task to remove the dependency from. Works with both regular task IDs and custom IDs (like 'DEV-1234'). Use clickup_search to find task ID by name if needed."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "waiting_on",
+              "blocking"
+            ],
+            "description": "Type of dependency to remove: 'waiting_on' or 'blocking'."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "depends_on",
+          "task_id",
+          "type"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_remove_task_from_list",
+      "description": "Remove a task from an additional list (cannot remove from home list). Requires the Tasks in Multiple Lists ClickApp to be enabled.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "list_id": {
+            "type": "string",
+            "description": "Numeric ID of the additional list to remove the task from. Resolve a list name with clickup_get_list (list_name) first."
+          },
+          "task_id": {
+            "type": "string",
+            "description": "ID of the task to remove from the additional list. Works with regular and custom IDs (like 'DEV-1234'). Note: a task cannot be removed from its home list."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "list_id",
+          "task_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_remove_task_link",
+      "description": "Remove a bidirectional task association between task_id and links_to. Both tasks remain intact.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "links_to": {
+            "type": "string",
+            "description": "ID of the task that was linked to. Works with both regular task IDs and custom IDs (like 'DEV-1234')."
+          },
+          "task_id": {
+            "type": "string",
+            "description": "ID of the task to remove the link from. Works with both regular task IDs and custom IDs (like 'DEV-1234'). Use clickup_search to find task ID by name if needed."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "links_to",
+          "task_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_request_attachment_upload",
+      "description": "Team HTTP mode only: request a five-minute, single-use upload ticket for one local attachment, up to 25 MB. POST multipart/form-data to the returned URL. No ClickUp credential is exposed. Tickets expire on server restart.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "file_name": {
+            "type": "string",
+            "description": "Optional file name override (include the extension). Defaults to the local file's own name."
+          },
+          "task_id": {
+            "type": "string",
+            "description": "Task ID (supports custom IDs like 'DEV-1234')"
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "task_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_resolve_assignees",
+      "description": "Convert names, emails, or \"me\" to numeric ClickUp user IDs. Only needed for tools whose assignee fields require IDs (e.g. create_task, update_task, comment/list/chat assignee fields, @mentions). Do not call this before search or filter_tasks — they accept names, emails, and \"me\" directly.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "assignees": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of assignee names, emails, or \"me\" to resolve. Use \"me\" to refer to the currently authenticated user."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "assignees"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_search",
+      "description": "Search task names/descriptions or Doc names using paginated public API reads and local matching. Returns explicit coverage. Dashboard, whiteboard, attachment-wide, and chat-wide searches are unavailable. Unsupported filters fail explicitly.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "number",
+            "description": "Maximum number of results to return per page (for pagination)"
+          },
+          "cursor": {
+            "type": "string",
+            "description": "Pagination cursor from previous response. Use to fetch next page of results"
+          },
+          "filters": {
+            "type": "object",
+            "properties": {
+              "asset_types": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "task",
+                    "doc",
+                    "whiteboard",
+                    "dashboard",
+                    "attachment",
+                    "chat"
+                  ]
+                },
+                "description": "Filter by asset types (task, doc, whiteboard, dashboard, attachment, or chat)"
+              },
+              "assignees": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Numeric user IDs. Use clickup_resolve_assignees to convert names/emails/\"me\"."
+              },
+              "created_date_from": {
+                "type": "string",
+                "description": "Filter items created on or after this date. Format: YYYY-MM-DD or YYYY-MM-DD HH:MM (e.g., \"2025-01-01\" or \"2025-01-01 09:00\")"
+              },
+              "created_date_to": {
+                "type": "string",
+                "description": "Filter items created on or before this date. Format: YYYY-MM-DD or YYYY-MM-DD HH:MM (e.g., \"2025-12-31\" or \"2025-12-31 23:59\")"
+              },
+              "creators": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Numeric user IDs. Use clickup_resolve_assignees to convert names/emails/\"me\"."
+              },
+              "due_date_from": {
+                "type": "string",
+                "description": "Filter items with due date on or after this date. Format: YYYY-MM-DD or YYYY-MM-DD HH:MM (e.g., \"2025-01-01\" or \"2025-01-01 09:00\")"
+              },
+              "due_date_to": {
+                "type": "string",
+                "description": "Filter items with due date on or before this date. Format: YYYY-MM-DD or YYYY-MM-DD HH:MM (e.g., \"2025-12-31\" or \"2025-12-31 23:59\")"
+              },
+              "location": {
+                "type": "object",
+                "properties": {
+                  "categories": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Filter by Folder IDs. Returns items from these Folders"
+                  },
+                  "projects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Filter by Space IDs. Returns items from these Spaces"
+                  },
+                  "subcategories": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Filter by List IDs. Returns items from these Lists"
+                  }
+                },
+                "additionalProperties": false,
+                "description": "Location filters for hierarchical organization (Spaces, Folders, Lists)"
+              },
+              "task_statuses": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "unstarted",
+                    "active",
+                    "done",
+                    "closed",
+                    "archived"
+                  ]
+                },
+                "description": "Filter tasks by their status (unstarted, active, done, closed, or archived)"
+              }
+            },
+            "additionalProperties": false,
+            "description": "Filters to refine search results by various criteria"
+          },
+          "keywords": {
+            "type": "string",
+            "description": "Search query string. Use specific keywords to find items"
+          },
+          "sort": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "direction": {
+                  "type": "string",
+                  "enum": [
+                    "asc",
+                    "desc"
+                  ],
+                  "description": "Sort order (asc for ascending, desc for descending)"
+                },
+                "field": {
+                  "type": "string",
+                  "enum": [
+                    "created_at",
+                    "updated_at"
+                  ],
+                  "description": "The field to sort by (created_at or updated_at)"
+                }
+              },
+              "required": [
+                "direction",
+                "field"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Sort criteria for results. Can specify multiple sort fields in priority order"
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_search_reminders",
+      "description": "UNAVAILABLE: ClickUp public v2/v3 specifications expose no reminder-list endpoint. This compatibility contract returns an explicit error.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "string",
+            "description": "Cursor for pagination. Use the next_cursor value from the previous response to fetch the next page of results"
+          },
+          "due_date_status": {
+            "type": "string",
+            "enum": [
+              "TODO",
+              "LATER",
+              "DELETED"
+            ],
+            "description": "Filter reminders by due date status (TODO, LATER, DELETED)"
+          },
+          "is_completed": {
+            "type": "boolean",
+            "description": "Filter to show only completed or incomplete reminders"
+          },
+          "is_overdue": {
+            "type": "boolean",
+            "description": "Filter to show only overdue reminders"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Maximum number of reminders to return per page (default: 25, max: 100)"
+          },
+          "reminder_type": {
+            "type": "string",
+            "enum": [
+              "ASSIGNED_COMMENT",
+              "UNANSWERED_MENTION",
+              "APPROVAL",
+              "SAVED",
+              "REMINDER"
+            ],
+            "description": "Filter by type of reminder (ASSIGNED_COMMENT, UNANSWERED_MENTION, APPROVAL, SAVED, REMINDER)"
+          },
+          "since": {
+            "type": "string",
+            "description": "Filter reminders updated since this date in YYYY-MM-DD format or date-time in YYYY-MM-DD HH:MM format (e.g., '2025-01-01' or '2025-01-01 09:00')"
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_send_chat_message",
+      "description": "Send a message or threaded reply to a chat channel. Provide parent_message_id for threaded replies. Supports markdown and post types.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "assignee": {
+            "type": "string",
+            "description": "User ID to assign the message to. Use clickup_resolve_assignees to convert email, username, or \"me\" to user ID if needed."
+          },
+          "channel_id": {
+            "type": "string",
+            "description": "ID of the chat channel to send the message to. Ignored when parent_message_id is set — a reply's channel is derived from its parent message."
+          },
+          "content": {
+            "type": "string",
+            "description": "Message content to send (supports markdown)."
+          },
+          "content_format": {
+            "type": "string",
+            "enum": [
+              "text/md",
+              "text/plain"
+            ],
+            "description": "Format of the message content."
+          },
+          "followers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of user IDs to add as followers of the message. Use clickup_resolve_assignees to convert emails, usernames, or \"me\" to user IDs if needed."
+          },
+          "group_assignee": {
+            "type": "string",
+            "description": "Group ID to assign the message to."
+          },
+          "parent_message_id": {
+            "type": "string",
+            "description": "ID of the parent message to reply to. When provided, the message is sent as a threaded reply instead of a top-level channel message. Use clickup_get_chat_channel_messages to find the message ID."
+          },
+          "post_title": {
+            "type": "string",
+            "description": "Title for the post (required if type is 'post')."
+          },
+          "post_type": {
+            "type": "string",
+            "enum": [
+              "Update",
+              "Announcement",
+              "Idea",
+              "Discussion"
+            ],
+            "description": "Kind of post (required if type is 'post'). Resolved to the workspace's post subtype."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "message",
+              "post"
+            ],
+            "description": "Type of message to send."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "channel_id",
+          "content"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_start_time_tracking",
+      "description": "Start time tracking on a task. Supports description, billable status, and tags. Only one timer can be running at a time. For best results, omit extra parameters unless specifically needed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "billable": {
+            "type": "boolean",
+            "description": "Whether this time is billable. Default is workspace setting."
+          },
+          "description": {
+            "type": "string",
+            "description": "Description for the time entry. Keep short and simple, or omit for best compatibility."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of tag names to assign to the time entry."
+          },
+          "task_id": {
+            "type": "string",
+            "description": "Task ID (supports custom IDs like 'DEV-1234')"
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "task_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_stop_time_tracking",
+      "description": "Stop the currently running time tracker. Supports description and tags. Returns the completed time entry details.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Description to update or add to the time entry."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of tag names to assign to the time entry."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_update_comment",
+      "description": "Edit an existing comment in place by comment_id. Replaces the comment text (supports Markdown), and can mark it resolved or reassign it. Use clickup_get_task_comments or clickup_get_threaded_comments to find the comment ID.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "assignee": {
+            "type": "number",
+            "description": "User ID to assign the comment to. Use clickup_resolve_assignees to convert email, username, or \"me\" to user ID if needed."
+          },
+          "comment_id": {
+            "type": "string",
+            "description": "ID of the comment to update. Use clickup_get_task_comments or clickup_get_threaded_comments to find the comment ID."
+          },
+          "comment_text": {
+            "type": "string",
+            "description": "New comment content that replaces the existing text. Supports Markdown formatting. To @mention a user, write [@Name](#user_mention#user_id) inline — user_id MUST be a numeric ClickUp user id from clickup_resolve_assignees."
+          },
+          "resolved": {
+            "type": "boolean",
+            "description": "Mark the comment as resolved (true) or unresolved (false)."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "comment_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_update_document_page",
+      "description": "Update a page in a ClickUp document. Use content_edit_mode to control how content is applied: append/prepend merge with the existing page server-side and preserve it exactly — no need to read the page first. The default is 'replace', which overwrites the whole page. If appended content should start on its own line, include a leading newline; if prepended content should end on its own line, include a trailing newline.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "New content for the page (must be non-empty; clearing a page is not supported). By default this REPLACES the entire existing page content — set content_edit_mode to 'append' or 'prepend' to add to the page instead of overwriting it."
+          },
+          "content_edit_mode": {
+            "type": "string",
+            "enum": [
+              "replace",
+              "append",
+              "prepend"
+            ],
+            "description": "How to apply `content`: 'append' adds it at the end of the existing page, 'prepend' inserts it before the existing content, 'replace' (default) OVERWRITES the entire page — existing content is lost. Ignored when `content` is not provided."
+          },
+          "content_format": {
+            "type": "string",
+            "enum": [
+              "text/md",
+              "text/plain"
+            ],
+            "description": "The format of the page content"
+          },
+          "document_id": {
+            "type": "string",
+            "description": "ID of the document containing the page (e.g. 'ad-909705'). In ClickUp doc URLs, the document_id is always the first ID after /docs/ or /v/dc/."
+          },
+          "name": {
+            "type": "string",
+            "description": "New name for the page"
+          },
+          "page_id": {
+            "type": "string",
+            "description": "ID of the page to update (e.g. 'ad-2675877'). In ClickUp doc URLs, this is the second ID after /docs/ or /v/dc/."
+          },
+          "sub_title": {
+            "type": "string",
+            "description": "New subtitle for the page"
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "document_id",
+          "page_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_update_folder",
+      "description": "Update a ClickUp folder. Requires folder_id + at least one update field (name/override_statuses). Only specified fields updated. Changes apply to all lists in folder. If you need to get a folder ID from a folder name, use clickup_get_folder first.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "folder_id": {
+            "type": "string",
+            "description": "ID of the folder to update."
+          },
+          "name": {
+            "type": "string",
+            "description": "New name for the folder."
+          },
+          "override_statuses": {
+            "type": "boolean",
+            "description": "Whether to override space statuses with folder-specific statuses."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "folder_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_update_list",
+      "description": "Update a ClickUp list. Requires list_id + at least one update field (name/content/status). Only specified fields updated. If you need to get a list ID from a list name, use clickup_get_list first.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "New description or content for the list."
+          },
+          "list_id": {
+            "type": "string",
+            "description": "ID of the list to update."
+          },
+          "name": {
+            "type": "string",
+            "description": "New name for the list."
+          },
+          "status": {
+            "type": "string",
+            "description": "New status for the list."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "list_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_update_reminder",
+      "description": "UNAVAILABLE: ClickUp public v2/v3 specifications expose no reminder-update endpoint. This compatibility contract returns an explicit error.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "New description for the reminder."
+          },
+          "due_date": {
+            "type": "string",
+            "description": "New due date in YYYY-MM-DD format or date-time in YYYY-MM-DD HH:MM format (e.g., '2025-12-31' or '2025-12-31 14:30'). Uses your user timezone."
+          },
+          "is_completed": {
+            "type": "boolean",
+            "description": "Set to true to mark the reminder as completed, false to mark as incomplete."
+          },
+          "reminder_id": {
+            "type": "string",
+            "description": "The unique identifier (KSUID) of the reminder to update."
+          },
+          "title": {
+            "type": "string",
+            "description": "New title for the reminder."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "reminder_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "clickup_update_task",
+      "description": "Update task properties. Requires task_id and at least one field to change. Supports assignees (user IDs, emails, usernames, or \"me\"), custom fields as [{id, value}], and task_type by name (or 'none' to reset).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "assignees": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of assignee user IDs. Use clickup_resolve_assignees to convert emails, usernames, or \"me\" to user IDs if needed."
+          },
+          "custom_fields": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "ID of the custom field"
+                },
+                "value": {
+                  "type": "string",
+                  "description": "Value for the custom field. Pass as a string — the format depends on the field type: text/url/email: the value directly. phone: must be a valid phone number in international format (e.g. '+1 234 567 8901'). dropdown: the option UUID. number/money/rating: the number as a string (e.g. '42'). date: a date string in YYYY-MM-DD or YYYY-MM-DD HH:MM format (auto-converted to timestamp). checkbox/button: 'true' or 'false'. labels: JSON array of UUIDs (e.g. '[\"uuid1\",\"uuid2\"]'). relationships/people/files: JSON with add/rem arrays (e.g. '{\"add\":[\"id1\"],\"rem\":[\"id2\"]}'). progress: JSON with current value (e.g. '{\"current\":50}'). location: JSON with location object (e.g. '{\"location\":{\"lat\":-28,\"lng\":153},\"formatted_address\":\"...\"}')."
+                }
+              },
+              "required": [
+                "id",
+                "value"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Array of custom field values to set on the task. Each object must have an 'id' and 'value' property."
+          },
+          "due_date": {
+            "type": "string",
+            "description": "YYYY-MM-DD or YYYY-MM-DD HH:MM format. Pass 'none' to clear. Omit to leave unchanged."
+          },
+          "markdown_description": {
+            "type": "string",
+            "description": "Task description in markdown format."
+          },
+          "name": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "urgent",
+              "high",
+              "normal",
+              "low",
+              "none"
+            ],
+            "description": "Set priority, or 'none' to clear. Omit to leave unchanged."
+          },
+          "start_date": {
+            "type": "string",
+            "description": "YYYY-MM-DD or YYYY-MM-DD HH:MM format. Pass 'none' to clear. Omit to leave unchanged."
+          },
+          "status": {
+            "type": "string",
+            "description": "New status (must be valid for the task's list)."
+          },
+          "task_id": {
+            "type": "string",
+            "description": "Task ID (supports custom IDs like 'DEV-1234')"
+          },
+          "task_type": {
+            "type": "string",
+            "description": "To change the task type, pass the type name as a string (e.g., 'Bug', 'Feature', 'Milestone'). The type must exist in the workspace. To revert to the default 'Task' type, pass 'none'. Omit entirely to leave unchanged."
+          },
+          "time_estimate": {
+            "type": "string",
+            "description": "Time estimate in minutes (e.g., '150' for 2h 30m)."
+          },
+          "workspace_id": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "Authorized workspace ID. Defaults to the workspace chosen when connecting."
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "Set true only after the user explicitly approves an irreversible deletion."
+          }
+        },
+        "required": [
+          "task_id"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    }
+  ],
+  "unavailable": {
+    "clickup_search_reminders": "ClickUp public v2/v3 specifications expose no reminder-list endpoint.",
+    "clickup_update_reminder": "ClickUp public v2/v3 specifications expose no reminder-update endpoint.",
+    "clickup_list_document_page_attachments": "Public attachments API supports tasks and file custom fields, not Doc pages.",
+    "clickup_download_document_page_attachment": "No public API for Doc page attachment lookup and signed downloads."
+  },
+  "limitations": {
+    "clickup_search": "Partial parity: public task and Doc-name search only. Unsupported asset types and filters fail explicitly. Coverage is returned with every page.",
+    "clickup_create_reminder": "Experimental: uses the existing repository create-only reminder integration. This endpoint is absent from the public OpenAPI specification and may be unavailable.",
+    "clickup_download_task_attachment": "Partial parity: returns attachment URLs from accessible task metadata. It cannot mint the official plugin private, short-lived download URLs.",
+    "clickup_execute_operator": "Public API implementation of five bulk workflows. Sequential per-item results, not the official private Unified API. Quill descriptions and group assignees are unavailable. query supports JMESPath.",
+    "clickup_get_operators": "Lists this server public-API bulk adapters. These are not upstream private Unified API routes.",
+    "clickup_request_attachment_upload": "Available in team HTTP mode only. Uses a one-time server upload ticket, never exposes the ClickUp OAuth credential."
+  }
+}

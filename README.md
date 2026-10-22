@@ -4,6 +4,10 @@ AiWorkFlo deployment: see [Render setup](deploy/AIWORKFLO-RENDER.md) and the
 [build roadmap](BUILD_ROADMAP.md) for reviewed configuration, observed test results,
 and remaining acceptance work. This fork retains the upstream application and license.
 
+The `clickup_team` compatibility interface is built into this repository. Team mode exposes 78 contracts: 16 existing tools plus 62 `clickup_*` contracts. Four compatibility contracts explicitly report unavailable public APIs. Search, reminder creation, signed attachment downloads, and bulk operations have documented parity limits. See the [operating skill](skills/clickup-team/SKILL.md) and [complete tool reference](docs/capabilities.md).
+
+Every installation receives the server instructions during MCP initialization and can read the `clickup-team://skill` resource. The skill and schemas are included in npm and Docker distributions. Refresh client tools after deploying a change. The hosted custom plugin is **AiWorkFlo ClickUp Team**, at `https://clickup-api.185.227.135.69.sslip.io/mcp`.
+
 <p align="center">
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
   <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen" alt="Node.js Version"></a>
@@ -16,7 +20,7 @@ A Model Context Protocol server for ClickUp, built around two ideas:
 
 **You choose what it can do.** Four capability profiles, enforced on every outgoing request. Hand an unattended agent the `agent` profile and it can create tasks and comments but cannot alter or delete anything that already exists.
 
-18 tools, 354 tests. Version **4.3.0** — see [CHANGELOG.md](CHANGELOG.md). A heavily renovated fork of [nsxdavid/clickup-mcp-server](https://github.com/nsxdavid/clickup-mcp-server).
+Version **4.4.0** retains the 18 native tools and adds the compatibility interface. Capability profiles control which tools are exposed. See [CHANGELOG.md](CHANGELOG.md). A heavily renovated fork of [nsxdavid/clickup-mcp-server](https://github.com/nsxdavid/clickup-mcp-server).
 
 > **Status:** 4.x is new. It has been through five adversarial red-team rounds but has not yet run in production. The previous 3.x line is still shipped in this repo and still what the reference deployment runs — see [Running 3.x](#running-3x).
 

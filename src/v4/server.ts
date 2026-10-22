@@ -19,6 +19,8 @@ import { taskTools } from './tools/tasks.js';
 import { structureTools } from './tools/structure.js';
 import { extraTools } from './tools/extras.js';
 import { extendedTools } from './tools/extended.js';
+import { compatibilityTools, COMPATIBILITY_INSTRUCTIONS } from '../compat/tools.js';
+import { registerGuidance } from '../compat/guidance.js';
 
 export { SERVER_VERSION } from './core/version.js';
 import { SERVER_VERSION } from './core/version.js';
@@ -28,6 +30,7 @@ export const allTools: ToolDef[] = [
   ...structureTools,
   ...extraTools,
   ...extendedTools,
+  ...compatibilityTools,
 ];
 
 /** Responses above this are truncated; Claude Code caps tool results at 25k tokens. */
@@ -140,8 +143,9 @@ function assemble(ctx: Ctx): McpServer {
     { name: 'clickup', version: SERVER_VERSION },
     {
       capabilities: { tools: {} },
+      maxToolInputElements: 10000,
       instructions:
-        'ClickUp, addressed by name. Lists are "Space/Folder/List" paths or bare names; ' +
+        COMPATIBILITY_INSTRUCTIONS + ' ClickUp, addressed by name. Lists are "Space/Folder/List" paths or bare names; ' +
         'assignees are usernames or "me"; statuses are the words shown in ClickUp. ' +
         'Start with `tree` to see what exists and `meta` to see what values a list accepts. ' +
         'Unresolvable names raise an error listing the valid options rather than returning ' +
@@ -190,5 +194,6 @@ function assemble(ctx: Ctx): McpServer {
     });
   }
 
+  registerGuidance(server);
   return server;
 }
