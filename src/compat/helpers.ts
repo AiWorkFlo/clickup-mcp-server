@@ -45,6 +45,15 @@ export function date(value:unknown,ctx:Ctx):number|null {
   return result;
 }
 export function confirmed(args:Args):void {if(args.confirm!==true)fail('Explicit user approval and confirm: true are required for this destructive action.');}
+/** ClickUp uses strict gt/lt filters. User-facing date bounds are inclusive. */
+export function rangeBound(value:string,ctx:Ctx,upper:boolean):number {
+  const start=date(value,ctx);if(start===null)fail('Date filter bounds cannot be none.');
+  if(upper&&/^\d{4}-\d{2}-\d{2}$/.test(value)){
+    const next=new Date(value+'T00:00:00Z');next.setUTCDate(next.getUTCDate()+1);
+    return date(next.toISOString().slice(0,10),ctx)!;
+  }
+  return start+(upper?1:-1);
+}
 export function taskQuery(task:string,ctx:Ctx):string {return /^[A-Za-z]+-\d+$/.test(task)?qs({custom_task_ids:true,team_id:ctx.workspaceId}):'';}
 export async function getTask(task:string,ctx:Ctx):Promise<Args> {return ctx.http.get(`/task/${id(task,'task_id')}${taskQuery(task,ctx)}`);}
 export async function canonicalTask(task:string,ctx:Ctx):Promise<string> {

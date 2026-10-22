@@ -175,3 +175,16 @@ test('manual time entries send stop and tid, retain account timezone and valid t
   assert.equal(write.body.tags[0].name,'Research');assert.ok(write.body.tags[0].tag_fg&&write.body.tags[0].tag_bg);
   assert.equal(write.body.end,undefined);
 });
+test('date-only task filters include the whole final day in the user timezone',async()=>{
+  const ctx=context({'/api/v2/user':{user:{id:1,timezone:'Asia/Singapore'}}});
+  await run('filter_tasks',{due_date_from:'2026-10-30',due_date_to:'2026-10-30'},ctx);
+  const url=new URL(calls.find(c=>c.path==='/api/v2/team/100/task').url);
+  assert.equal(Number(url.searchParams.get('due_date_gt')),Date.parse('2026-10-29T16:00:00Z')-1);
+  assert.equal(Number(url.searchParams.get('due_date_lt')),Date.parse('2026-10-30T16:00:00Z'));
+});
+test('task-specific search filters never fail later when the task scan reaches Docs',async()=>{
+  const ctx=context({'/api/v2/team/100/task':{tasks:[],last_page:true}});
+  const result=await run('search',{filters:{location:{subcategories:['123']}}},ctx);
+  assert.deepEqual(result.coverage.asset_types,['task']);assert.equal(result.next_cursor,null);
+  assert.ok(!calls.some(c=>c.path.endsWith('/docs')));
+});

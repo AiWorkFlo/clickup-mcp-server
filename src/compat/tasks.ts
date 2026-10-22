@@ -1,6 +1,6 @@
 import {qs} from '../v4/core/http.js';
 import type {Ctx} from '../v4/tools/registry.js';
-import {type Args,id,required,pick,date,confirmed,canonicalTask,getTask,resolve,taskType,customFields,fieldsForTask,nonempty,page,fail} from './helpers.js';
+import {type Args,id,required,pick,date,rangeBound,confirmed,canonicalTask,getTask,resolve,taskType,customFields,fieldsForTask,nonempty,page,fail} from './helpers.js';
 
 const priorities:Args={urgent:1,high:2,normal:3,low:4,none:null};
 export async function taskBody(a:Args,ctx:Ctx,creating:boolean):Promise<Args> {
@@ -109,7 +109,7 @@ export async function filterTasks(a:Args,ctx:Ctx):Promise<Args> {
   const p=page(a.page),params:Args={page:p,include_closed:a.include_closed,subtasks:a.subtasks??true,order_by:a.order_by,reverse:a.reverse,
     list_ids:a.list_ids,space_ids:a.space_ids,project_ids:a.folder_ids,statuses:a.statuses};
   if(a.assignees)params.assignees=await resolve(a.assignees,ctx);
-  for(const [source,target] of Object.entries({due_date_from:'due_date_gt',due_date_to:'due_date_lt',date_closed_from:'date_done_gt',date_closed_to:'date_done_lt'}))if(a[source])params[target]=date(a[source],ctx);
+  for(const [source,target] of Object.entries({due_date_from:'due_date_gt',due_date_to:'due_date_lt',date_closed_from:'date_done_gt',date_closed_to:'date_done_lt',created_date_from:'date_created_gt',created_date_to:'date_created_lt'}))if(a[source])params[target]=rangeBound(a[source],ctx,source.endsWith('_to'));
   if(a.custom_fields?.length){
     const defs=(await ctx.http.get<Args>(`/team/${id(ctx.workspaceId)}/field`)).fields??[];
     const fields=[];
