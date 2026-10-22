@@ -24,6 +24,9 @@ export interface Ctx {
    * shows a startup crash only in a log file the user has to go find.
    */
   configError?: string;
+  timezone?: string;
+  /** Team HTTP mode supplies one-time upload handoffs without exposing upstream tokens. */
+  requestUpload?: (taskId:string,fileName?:string)=>Promise<Record<string,unknown>>;
   now: () => number;
   log: (msg: string) => void;
 }

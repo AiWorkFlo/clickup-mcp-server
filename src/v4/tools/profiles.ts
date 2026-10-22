@@ -13,6 +13,7 @@
 
 import type { Profile, ToolDef } from './registry.js';
 import type { Restriction } from './registry.js';
+import {compatibilityTools} from '../../compat/tools.js';
 
 export interface ToolProfile {
   /** Lowest profile in which this tool appears at all. */
@@ -39,6 +40,8 @@ export interface ToolEnv {
 const READ_ONLY_NOTE = 'Read-only under this profile.';
 
 export const TOOL_PROFILES: Record<string, ToolProfile> = {
+  // Compatibility contracts inherit the same HTTP policy. Writes stay core-only.
+  ...Object.fromEntries(compatibilityTools.map(tool=>[tool.name,{min:tool.minProfile??'core'}])),
   // ---- pure reads: available everywhere -----------------------------------------------
   find: { min: 'read' },
   task: { min: 'read' },

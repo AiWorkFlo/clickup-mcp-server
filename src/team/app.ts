@@ -6,6 +6,7 @@ import { TeamProvider, cookie, setCookie, FLOW_COOKIE, SESSION_COOKIE } from './
 import { TeamTools } from './tools.js';
 import { html, equal, TTL, safeRedirect, CLIENTS, type TeamConfig } from './security.js';
 import type { TeamStore, TeamUser } from './store.js';
+import {SERVER_VERSION} from '../v4/core/version.js';
 
 export function page(title: string, body: string): string {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${html(title)} | ClickUp Team</title>
@@ -48,7 +49,7 @@ export function createTeamApp(config: TeamConfig, store: TeamStore, provider: Te
   }
   const csrfField=(req: Request)=>`<input type="hidden" name="csrf" value="${html(csrf(cookie(req.headers.cookie,SESSION_COOKIE)))}">`;
   app.get('/health',async(_req,res)=>{
-    try { await store.pool.query('SELECT 1'); res.json({ok:true,mode:'team',version:'4.3.1-team',profile:'core',tools_enabled:true}); }
+    try { await store.pool.query('SELECT 1'); res.json({ok:true,mode:'team',version:SERVER_VERSION+'-team',profile:'core',tools_enabled:true}); }
     catch { res.status(503).json({ok:false,mode:'team'}); }
   });
   app.get('/',(_req,res)=>res.redirect('/account'));
@@ -149,6 +150,18 @@ export function createTeamApp(config: TeamConfig, store: TeamStore, provider: Te
     }) as Response['redirect'];next();
   });
   app.use(mcpAuthRouter(authOptions));
+  app.post('/attachment-upload/:ticket',express.raw({type:'multipart/form-data',limit:'26mb'}),async(req,res)=>{
+    if(req.headers.origin&&![config.origin,'https://chatgpt.com'].includes(req.headers.origin)){
+      res.status(403).json({error:'invalid_origin'});return;
+    }
+    if(!Buffer.isBuffer(req.body)||!String(req.headers['content-type']).startsWith('multipart/form-data')){
+      res.status(400).json({error:'multipart_attachment_required'});return;
+    }
+    try{
+      const request=new Request(config.origin+'/attachment-upload',{method:'POST',headers:{'Content-Type':String(req.headers['content-type'])},body:new Uint8Array(req.body)});
+      res.json(await tools.upload(String(req.params.ticket),await request.formData()));
+    }catch{res.status(400).json({error:'upload_failed',message:'Ticket expired, access revoked, or upload failed. Request a fresh ticket before retrying.'});}
+  });
   app.all('/mcp',async(req,res)=>{
     if(req.headers.origin && ![config.origin,'https://chatgpt.com'].includes(req.headers.origin)) {
       res.status(403).json({error:'invalid_origin'});return;

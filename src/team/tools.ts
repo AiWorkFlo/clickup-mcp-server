@@ -8,9 +8,13 @@ import type { ToolDef } from '../v4/tools/registry.js';
 import { requireConfirmation } from './security.js';
 import { ClickUpOAuth } from './provider.js';
 import { TeamStore, type GrantIdentity } from './store.js';
+import {randomToken} from './security.js';
+import {compatibilityReadOnly,COMPATIBILITY_INSTRUCTIONS} from '../compat/tools.js';
+import {registerGuidance} from '../compat/guidance.js';
 
 export class TeamTools {
   private budgets=new Map<string,{budget:RateBudget;used:number}>();
+  private uploadTickets=new Map<string,{identity:GrantIdentity;workspace:string;task:string;fileName?:string;expires:number}>();
   constructor(readonly store: TeamStore,readonly clickup: ClickUpOAuth,readonly fetchImpl: typeof fetch=fetch) {}
   private budget(identity: GrantIdentity): RateBudget {
     const key=`${identity.user.id}:${identity.user.credential_version}`;
@@ -40,7 +44,32 @@ export class TeamTools {
         }
         return response;
       }});
+    ctx.requestUpload=async(task,fileName)=>{
+      const now=Date.now();
+      for(const [ticket,row] of this.uploadTickets)if(row.expires<now)this.uploadTickets.delete(ticket);
+      if(this.uploadTickets.size>=1000)throw new ClickUpToolError({what:'Too many pending uploads. Retry after existing tickets expire.'});
+      const resource=process.env.MCP_PUBLIC_URL;
+      if(!resource)throw new ClickUpToolError({what:'Native uploads require a configured MCP_PUBLIC_URL.'});
+      const ticket=randomToken(),expires=now+300000;
+      this.uploadTickets.set(ticket,{identity:{...identity,user},workspace,task,fileName,expires});
+      return {upload_url:new URL(`/attachment-upload/${ticket}`,resource).href,method:'POST',field_name:'attachment',file_name:fileName,
+        expires_at:new Date(expires).toISOString(),max_bytes:25*1024*1024,single_use:true,
+        instructions:'POST multipart/form-data with one attachment file. Do not send a ClickUp credential. Treat this ticket URL as a secret and use it once.'};
+    };
     return {ctx,user};
+  }
+  async upload(ticket:string,form:FormData):Promise<unknown>{
+    const row=this.uploadTickets.get(ticket);this.uploadTickets.delete(ticket);
+    if(!row||row.expires<Date.now())throw new Error('Upload ticket is invalid or expired.');
+    const files=form.getAll('attachment');
+    if(files.length!==1||typeof files[0]==='string'||files[0].size>25*1024*1024)throw new Error('Upload requires one attachment file of at most 25 MB.');
+    const {ctx,user}=await this.context(row.identity,row.workspace);
+    const workspaces=await ctx.http.get<{teams:Array<{id:string|number}>}>('/team');
+    if(!workspaces.teams.some(t=>String(t.id)===row.workspace))throw new Error('Workspace access is revoked.');
+    const upload=new FormData();upload.append('attachment',files[0],row.fileName??files[0].name);
+    const result=await ctx.http.upload(`/task/${encodeURIComponent(row.task)}/attachment`,upload);
+    await this.store.audit(user.id,'tool:clickup_upload_attachment',row.task);
+    return result;
   }
   async workspaces(identity: GrantIdentity) {
     const {ctx}=await this.context(identity,identity.workspaceId);
@@ -69,8 +98,8 @@ export class TeamTools {
     try {return value.split(this.store.token(identity.user)).join('[redacted]');} catch {return value;}
   }
   server(identity: GrantIdentity): McpServer {
-    const server=new McpServer({name:'clickup-team',version:SERVER_VERSION},{capabilities:{tools:{}},instructions:
-      'Use workspaces to list authorized ClickUp workspaces. Pass workspace_id to select a workspace. '+
+    const server=new McpServer({name:'clickup-team',version:SERVER_VERSION},{capabilities:{tools:{}},maxToolInputElements:10000,instructions:
+      COMPATIBILITY_INSTRUCTIONS+' Use workspaces to list authorized ClickUp workspaces. Pass workspace_id to select a workspace. '+
       'Every action uses your own ClickUp permissions. Ask the user before destructive actions and pass confirm: true only after approval.'});
     server.registerTool('workspaces',{description:'List workspaces authorized by your own ClickUp account and the default for this connection.',inputSchema:{},
       annotations:{readOnlyHint:true,destructiveHint:false,openWorldHint:true}},async()=>{
@@ -86,7 +115,7 @@ export class TeamTools {
       return {...tool,schema};
     },{hasSandbox:false}).filter(tool=>tool.name!=='attach');
     for(const tool of tools) {
-      const readOnly=['find','task','tree','meta','whoami','docs'].includes(tool.name);
+      const readOnly=['find','task','tree','meta','whoami','docs'].includes(tool.name)||compatibilityReadOnly.has(tool.name);
       server.registerTool(tool.name,{description:tool.description,inputSchema:{...tool.schema,
         workspace_id:z.string().regex(/^\d+$/).optional().describe('Authorized workspace ID. Defaults to the workspace chosen when connecting.'),
         confirm:z.boolean().optional().describe('Set true only after the user explicitly approves an irreversible deletion.')},
@@ -102,6 +131,7 @@ export class TeamTools {
         }
       });
     }
+    registerGuidance(server);
     return server;
   }
 }

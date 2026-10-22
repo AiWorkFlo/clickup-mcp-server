@@ -538,3 +538,12 @@ ClickUp endpoint or an honestly-labeled local computation. **85 tools /
 ## 2.0.0 and earlier
 
 See the upstream project: https://github.com/nsxdavid/clickup-mcp-server
+# 4.4.0
+
+- Add 62 `clickup_*` compatibility contracts to the shared registry, alongside existing native tools. Team mode exposes 78 contracts. Four explicitly report missing public APIs rather than simulate functionality.
+- Implement public API task, relationship, hierarchy, field, comment, Doc, chat, time, attachment, and bulk workflows. Preserve per-user team OAuth, approval checks, and profile enforcement.
+- Resolve calendar inputs in the ClickUp account timezone. Translate Markdown comments and user mentions to rich comment segments.
+- Add one-time, credential-free local upload handoffs in team HTTP mode.
+- Package the operating skill, complete schemas, and MCP guidance resource in every distribution.
+- Upgrade the MCP SDK and enable an input-element limit. Retain the original native schema budget and track the additional compatibility surface separately.
+
