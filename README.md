@@ -6,7 +6,7 @@ and remaining acceptance work. This fork retains the upstream application and li
 
 The `clickup_team` compatibility interface is built into this repository. Team mode exposes 78 contracts: 16 existing tools plus 62 `clickup_*` contracts. Four compatibility contracts explicitly report unavailable public APIs. Search, reminder creation, signed attachment downloads, and bulk operations have documented parity limits. See the [operating skill](skills/clickup-team/SKILL.md) and [complete tool reference](docs/capabilities.md).
 
-Every installation receives the server instructions during MCP initialization and can read the `clickup-team://skill` resource. The skill and schemas are included in npm and Docker distributions. Refresh client tools after deploying a change. The hosted custom plugin is **AiWorkFlo ClickUp Team**, at `https://clickup-api.185.227.135.69.sslip.io/mcp`.
+Every installation receives the server instructions during MCP initialization and can read the `clickup-team://skill` resource. The skill and schemas are included in npm and Docker distributions. Refresh client tools after deploying a change. The hosted custom plugin is **ClickUp Team**, at `https://clickup-api.185.227.135.69.sslip.io/mcp`.
 
 <p align="center">
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
