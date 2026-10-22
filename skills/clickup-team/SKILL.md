@@ -5,7 +5,7 @@ description: Use the self-hosted ClickUp Team MCP for workspace operations, task
 
 # ClickUp Team
 
-Use the selected `clickup_team` MCP connection. The hosted service is `https://clickup-api.185.227.135.69.sslip.io/mcp`. Its personal plugin is named **AiWorkFlo ClickUp Team**. Each teammate connects their own ClickUp account and requires owner approval. Never substitute the public ClickUp plugin or another account silently.
+Use the selected `clickup_team` MCP connection. The hosted service is `https://clickup-api.185.227.135.69.sslip.io/mcp`. Its personal plugin is named **ClickUp Team**. Each teammate connects their own ClickUp account and requires owner approval. Never substitute the public ClickUp plugin or another account silently.
 
 The server advertises 62 `clickup_*` compatibility contracts alongside its existing name-based tools. Contract count does not establish complete functional parity. Read `clickup_get_schema` for implemented, limited, experimental, and unavailable operations.
 
